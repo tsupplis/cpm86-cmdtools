@@ -1,0 +1,25 @@
+CC=aztec_cc
+CFLAGS=-D__MSDOS__
+STRIP=echo
+LDFLAGS=-lm -lc
+LD=aztec_link
+BINEXT=.com
+
+TOOLS=cmdinfo$(BINEXT) bin2cmd$(BINEXT)
+
+all: $(TOOLS)
+
+bin2cmd$(BINEXT): bin2cmd.o
+	$(LD) -o $@ $< $(LDFLAGS)
+	$(STRIP) $@
+
+cmdinfo$(BINEXT): cmdinfo.o
+	$(LD) -o $@ $< $(LDFLAGS)
+	$(STRIP) $@
+
+.c.o:
+	$(CC) $(CFLAGS) $<
+
+clean:
+	$(RM) *.o $(TOOLS)
+
