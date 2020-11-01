@@ -1,6 +1,6 @@
 CC=aztec_cc
-CFLAGS=-D__CPM86__
-STRIP=echo
+CFLAGS=-D__CPM86__ 
+STRIP=aztec_sqz
 LDFLAGS=-lm -lc86
 LD=aztec_link
 BINEXT=.cmd
@@ -11,14 +11,13 @@ all: $(TOOLS)
 
 bin2cmd$(BINEXT): bin2cmd.o
 	$(LD) -o $@ $< $(LDFLAGS)
-	$(STRIP) $@
 
 cmdinfo$(BINEXT): cmdinfo.o
 	$(LD) -o $@ $< $(LDFLAGS)
-	$(STRIP) $@
 
 .c.o:
 	$(CC) $(CFLAGS) $<
+	$(STRIP) $@
 
 clean:
 	$(RM) *.o $(TOOLS)

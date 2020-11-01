@@ -1,6 +1,6 @@
 CC=aztec_cc
 CFLAGS=-D__MSDOS__
-STRIP=echo
+STRIP=aztec_sqz
 LDFLAGS=-lm -lc
 LD=aztec_link
 BINEXT=.com
@@ -11,15 +11,20 @@ all: $(TOOLS)
 
 bin2cmd$(BINEXT): bin2cmd.o
 	$(LD) -o $@ $< $(LDFLAGS)
-	$(STRIP) $@
 
 cmdinfo$(BINEXT): cmdinfo.o
 	$(LD) -o $@ $< $(LDFLAGS)
-	$(STRIP) $@
 
 .c.o:
 	$(CC) $(CFLAGS) $<
+	$(STRIP) $@
 
 clean:
 	$(RM) *.o $(TOOLS)
+
+test: $(TOOLS)
+	emu2 ./cmdinfo.com t0.cmd
+	emu2 ./cmdinfo.com t1.cmd
+	emu2 ./cmdinfo.com t2.cmd
+	emu2 ./cmdinfo.com t3.cmd
 

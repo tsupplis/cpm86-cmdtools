@@ -1,18 +1,36 @@
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef __LEGACY__
 #include <string.h>
+#include <stdlib.h>
+#endif
+#include <stdio.h>
 #include <errno.h>
 
+#ifndef __LEGACY__
 #if defined(__APPLE__) || defined(__gnu_linux__)
 #include <unistd.h>
-#define BINARY "b"
+#define BINARY_READ "rb"
+#define BINARY_WRITE "wb"
 #else
-#define BINARY ""
+#define BINARY_READ "r"
+#define BINARY_WRITE "w"
+#endif
+#else
+#define SEEK_SET 0
+#define SEEK_END 2
+#define BINARY_READ "r"
+#define BINARY_WRITE "w"
 #endif
 
 unsigned char header[384];
 
+#ifndef __LEGACY__
 int main_alt(int argc, char **argv) {
+#else
+int main_alt(argc, argv) 
+        int argc; 
+        char **argv; 
+{
+#endif
     FILE *fin, *fout;
     long pos, paras, maxsize;
     int c;
@@ -23,7 +41,7 @@ int main_alt(int argc, char **argv) {
        return 1;
     }
     /* Open the input file, and seek to the end to get its size */
-    fin = fopen(argv[1], "r" BINARY);
+    fin = fopen(argv[1], BINARY_READ);
     if (!fin) {
         fprintf(stderr,"ERR: Can't open input '%s' (%d)\n",argv[1],errno);
         return 1;
@@ -69,7 +87,7 @@ int main_alt(int argc, char **argv) {
     header[8] = (maxsize >> 8) & 0xFF; /* Maximum size */
 
     /* Open output file */
-    fout = fopen(argv[2], "w" BINARY);
+    fout = fopen(argv[2], BINARY_WRITE);
     if (!fout) {
         fprintf(stderr,"ERR: Can't open output '%s' (%d)\n",argv[2], errno);
         fclose(fin);
@@ -103,7 +121,14 @@ int main_alt(int argc, char **argv) {
     return 0;
 }
 
+#ifndef __LEGACY__
 int main(int argc, char **argv) {
+#else
+int main(argc, argv) 
+        int argc; 
+        char **argv; 
+{
+#endif
     exit(main_alt(argc,argv));
     return 0;
 }

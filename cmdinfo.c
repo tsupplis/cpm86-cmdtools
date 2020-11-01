@@ -1,13 +1,24 @@
+#ifndef __LEGACY__
+#include <string.h>
+#endif
 #include <ctype.h>
 #include <stdio.h>
-#include <string.h>
+#ifndef __LEGACY__
 #if defined(__APPLE__) || defined(__gnu_linux__)
 #include <unistd.h>
 #include <libgen.h>
 #define PACK __attribute__((packed))
 #endif
+#endif
+#ifndef __LEGACY__
 #include <stdint.h>
 #include <stdlib.h>
+#else
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int size_t;
+#define SEEK_SET 0
+#endif
 
 #ifdef __CPM86__
 #define PACK
@@ -37,8 +48,19 @@ char *g_type[16] = {"NULL",      "CODE",        "DATA",      "EXTRA",
                     "AUX #4",    "SHARED CODE", "UNUSED 10", "UNUSED 11",
                     "UNUSED 12", "UNUSED 13",   "UNUSED 14", "ESCAPE CODE"};
 
+#ifndef __LEGACY__
 void dump(FILE *out, int index, char type, uint16_t base, uint16_t length,
           size_t offset, FILE *fin) {
+#else
+void dump(out, index, type, base, length, offset, fin) 
+          FILE *out; 
+          int index; 
+          char type; 
+          uint16_t base; 
+          uint16_t length;
+          size_t offset; 
+          FILE *fin; {
+#endif
     char file_name[12 + 1];
     FILE *fout;
     uint16_t left = length;
@@ -90,16 +112,28 @@ void dump(FILE *out, int index, char type, uint16_t base, uint16_t length,
     fclose(fout);
 }
 
+#ifndef __LEGACY__
 void display_header(FILE *out, const char *name, int index, header_t *header,
                     size_t *offset, FILE *fin) {
+#else
+display_header(out, name, index, header, offset, fin) 
+        FILE *out; 
+        char *name; 
+        int index; 
+        header_t *header;
+        size_t *offset;
+        FILE *fin; 
+{
+#endif
     int type;
     if (!header->form) {
         return;
     }
     type = header->form & 0xF;
     fprintf(out, "INF: CMD(%s) HDR(%d)", basename((char *)name), index);
-    fprintf(out, " TYP(0x%02X, %s)", header->form, g_type[type]);
-    fprintf(out, " BAS(0x%04X)", header->base);
+    fprintf(out, " TYP(0x%02x", header->form);
+    fprintf(out, ", %s)", g_type[header->form]);
+    fprintf(out, " BAS(0x%04x)", header->base);
     if (header->min)
         fprintf(out, " MIN(%.1fk %u)", header->min / 64.0, header->min * 16);
     if (header->max)
@@ -112,8 +146,17 @@ void display_header(FILE *out, const char *name, int index, header_t *header,
     *offset += header->length;
 }
 
+#ifndef __LEGACY__
 void display_header_block(FILE *out, const char *name, header_block_t *block,
                           FILE *fin) {
+#else
+display_header_block(out, name,  block, fin) 
+        FILE *out; 
+        char *name; 
+        header_block_t *block;
+        FILE *fin; 
+{
+#endif
     int i;
     size_t offset = 128+256;
 
@@ -127,7 +170,15 @@ void display_header_block(FILE *out, const char *name, header_block_t *block,
     }
 }
 
+#ifndef __LEGACY__
 int display_file(FILE *out, const char *name, int extract) {
+#else
+int display_file(out, name, extract) 
+        FILE *out; 
+        char *name; 
+        int extract; 
+{
+#endif
     FILE *f;
     size_t r;
     header_block_t block;
@@ -148,7 +199,11 @@ int display_file(FILE *out, const char *name, int extract) {
     return 0;
 }
 
+#ifndef __LEGACY__
 void usage() {
+#else
+usage() {
+#endif
     fprintf(stderr, "ERR: Invalid command line\n");
     fprintf(stderr, "INF: cmdinfo file.cmd [...]\n");
     fprintf(stderr, "     - displays CMD headers\n");
@@ -156,7 +211,14 @@ void usage() {
     fprintf(stderr, "     - extracts code segments (c<index>-<base>.bin)\n");
 }
 
+#ifndef __LEGACY__
 int main(int argc, char **argv) {
+#else
+int main(argc, argv) 
+        int argc; 
+        char **argv; 
+{
+#endif
     int i;
     if (argc < 2) {
         usage();

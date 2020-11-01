@@ -23,8 +23,8 @@ cmdinfo$(BINEXT): cmdinfo.o
 clean:
 	$(RM) *.o $(TOOLS)
 
-test: cmdinfo
-	./cmdinfo eraq.cmd
-	./cmdinfo pcever.cmd
-	./cmdinfo ted.cmd
-	./cmdinfo cpm.sys
+test: $(TOOLS)
+	./cmdinfo t0.cmd
+	./cmdinfo t1.cmd
+	./cmdinfo t2.cmd
+	./cmdinfo t3.cmd

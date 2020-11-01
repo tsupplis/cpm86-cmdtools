@@ -1,7 +1,7 @@
-cz -ic: cmdinfo
-as -zap cmdinfo
-ln -o cmdinfo.cmd cmdinfo.o
-cz -ic: bin2cmd
-as -zap bin2cmd
-ln -o bin2cmd.cmd bin2cmd.o
+c:cc -D__CPM86__ -D__LEGACY__ -ic: cmdinfo
+c:as -zap cmdinfo
+c:ln -o cmdinfo.cmd cmdinfo.o c:m.lib c:c.lib
+c:cc -ic: bin2cmd
+c:as -zap bin2cmd
+ln -o bin2cmd.cmd bin2cmd.o c:m.lib c:c.lib
 era *.o
