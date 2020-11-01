@@ -1,0 +1,7 @@
+cz -ic: cmdinfo
+as -zap cmdinfo
+ln -o cmdinfo.cmd cmdinfo.o
+cz -ic: bin2cmd
+as -zap bin2cmd
+ln -o bin2cmd.cmd bin2cmd.o
+era *.o
