@@ -1,0 +1,17 @@
+            title   'simple test'
+
+            cseg
+            org 100h
+            mov    cx, cs
+            mov    ds, cx
+            mov    es, cx
+            lea    dx, _message
+            mov    cl, 09h
+            int    0E0h
+_exit:
+            mov    cl, 00h
+            int    0E0h
+
+_message    db     'Hello world, I',39,'m 16-bit CPM/86 Assembly ... !!!', 13, 10, '$'
+
+            end
