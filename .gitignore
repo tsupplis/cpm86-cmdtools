@@ -13,6 +13,7 @@ test
 *.exe
 bin2cmd
 cmdinfo
+exe2cmd
 .*.swp
 *.obj
 **/*.img
