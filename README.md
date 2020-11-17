@@ -15,6 +15,7 @@ bin2cmd and exe2cmd originate from John Elliot Code...
 - Examples with MASM, RASM86, MS LINK, DR LINKEXE
 - Provide real DOS makefile
 - Regress test the submit script
+- Adjust exe2cmd to work with basic exes
 
 ## Build Env
 
