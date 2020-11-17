@@ -73,7 +73,7 @@ addgroup(type, paras, base, minparas, maxparas)
 	*group++ = (minparas >> 8);
 	*group++ = (maxparas & 0xFF);
 	*group++ = (maxparas >> 8);
-	printf("Group %d: len=%04x base=%04x min=%04x max=%04x\n",
+	fprintf(stderr,"INF: Group %d: len=%04x base=%04x min=%04x max=%04x\n",
 			type, paras, base, minparas, maxparas);
 }
 
@@ -151,6 +151,8 @@ int main_alt(argc, argv)
 		fclose(fpexe);
 		return 1; 
 	}
+    fprintf(stderr,"INF: Signature      = %x\n",peek(0));
+    fprintf(stderr,"INF: Reloc Entries  = %d\n",peek(6));
 	cseg = 0;
 	dseg = peek(0x206);
 	sseg = peek(14);
