@@ -5,7 +5,7 @@ LDFLAGS=-lm -lc
 LD=aztec_link
 BINEXT=.com
 
-TOOLS=cmdinfo$(BINEXT) bin2cmd$(BINEXT)
+TOOLS=cmdinfo$(BINEXT) bin2cmd$(BINEXT) exe2cmd$(BINEXT)
 
 all: $(TOOLS)
 
@@ -13,6 +13,9 @@ bin2cmd$(BINEXT): bin2cmd.o
 	$(LD) -o $@ $< $(LDFLAGS)
 
 cmdinfo$(BINEXT): cmdinfo.o
+	$(LD) -o $@ $< $(LDFLAGS)
+
+exe2cmd$(BINEXT): exe2cmd.o
 	$(LD) -o $@ $< $(LDFLAGS)
 
 .c.o:

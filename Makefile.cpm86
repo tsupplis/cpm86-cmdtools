@@ -1,11 +1,11 @@
 CC=aztec_cc
-CFLAGS=-D__CPM86__ 
+CFLAGS=-D__CPM86__  -D__LEGACY__
 STRIP=aztec_sqz
 LDFLAGS=-lm -lc86
 LD=aztec_link
 BINEXT=.cmd
 
-TOOLS=cmdinfo$(BINEXT) bin2cmd$(BINEXT)
+TOOLS=cmdinfo$(BINEXT) bin2cmd$(BINEXT) exe2cmd$(BINEXT)
 
 all: $(TOOLS)
 
@@ -13,6 +13,9 @@ bin2cmd$(BINEXT): bin2cmd.o
 	$(LD) -o $@ $< $(LDFLAGS)
 
 cmdinfo$(BINEXT): cmdinfo.o
+	$(LD) -o $@ $< $(LDFLAGS)
+
+exe2cmd$(BINEXT): exe2cmd.o
 	$(LD) -o $@ $< $(LDFLAGS)
 
 .c.o:

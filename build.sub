@@ -4,4 +4,7 @@ c:ln -o cmdinfo.cmd cmdinfo.o c:m.lib c:c.lib
 c:cc -ic: bin2cmd
 c:as -zap bin2cmd
 ln -o bin2cmd.cmd bin2cmd.o c:m.lib c:c.lib
+c:cc -ic: exe2cmd
+c:as -zap exe2cmd
+ln -o exe2cmd.cmd exe2cmd.o c:m.lib c:c.lib
 era *.o

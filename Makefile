@@ -5,7 +5,7 @@ LDFLAGS=
 LD=cc
 BINEXT=
 
-TOOLS=cmdinfo$(BINEXT) bin2cmd$(BINEXT) 
+TOOLS=cmdinfo$(BINEXT) bin2cmd$(BINEXT)  exe2cmd$(BINEXT) 
 
 all: $(TOOLS)
 
@@ -14,6 +14,10 @@ bin2cmd$(BINEXT): bin2cmd.o
 	$(STRIP) $@
 
 cmdinfo$(BINEXT): cmdinfo.o
+	$(LD) -o $@ $< $(LDFLAGS)
+	$(STRIP) $@
+
+exe2cmd$(BINEXT): exe2cmd.o
 	$(LD) -o $@ $< $(LDFLAGS)
 	$(STRIP) $@
 
