@@ -105,7 +105,7 @@ void dump(out, index, type, base, length, offset, fin)
     }
     while (left > 0) {
         size_t mo;
-        size_t mi = fread(buffer, 1, 128, fin);
+        size_t mi = fread(buffer, 1, 128>left?left:128, fin);
         if (mi == 0) {
             if (ferror(fin)) {
                 fprintf(stderr, "ERR: Cannot read input (%d,%lu)\n", index,
@@ -116,7 +116,7 @@ void dump(out, index, type, base, length, offset, fin)
             }
             break;
         }
-        mo = fwrite(buffer, 1, mi, fout);
+        mo = fwrite(buffer, 1, mi>left?left:mi, fout);
         if (mo != mi) {
             fprintf(stderr, "ERR: Cannot rite output fully to (%s)\n",
                     file_name);
@@ -155,12 +155,13 @@ display_header(out, name, index, header, offset, fin)
         fprintf(out, " MIN(%.1fk %u)", header->min / 64.0, header->min * 16);
     if (header->max)
         fprintf(out, " MAX(%.1fk %u)", header->max / 64.0, header->max * 16);
+    fprintf(out, " LEN(%u)", header->length*16);
     fprintf(out, "\n");
-    if (type == 1) {
-        dump(out, index, tolower(g_type[type][0]), header->base, header->length,
+    if (type == 1 || type == 2) {
+        dump(out, index, tolower(g_type[type][0]), header->base, header->length*16,
              *offset, fin);
     }
-    *offset += header->length;
+    *offset += header->length*16;
 }
 
 #ifndef __LEGACY__
