@@ -147,15 +147,15 @@ display_header(out, name, index, header, offset, fin)
         return;
     }
     type = header->form & 0xF;
-    fprintf(out, "INF: CMD(%s) HDR(%d)", basename((char *)name), index);
-    fprintf(out, " TYP(0x%02x", header->form);
-    fprintf(out, ", %s)", g_type[header->form]);
-    fprintf(out, " BAS(0x%04x)", header->base);
+    fprintf(out, "INF: HDR(%d)",index);
+    fprintf(out, "TYP(0x%02x", header->form);
+    fprintf(out, ",%s)", g_type[header->form]);
+    fprintf(out, "BAS(%04xh)", header->base);
     if (header->min)
-        fprintf(out, " MIN(%.1fk %u)", header->min / 64.0, header->min * 16);
+        fprintf(out, "MN(%.1fk=%lu)", header->min / 64.0, (unsigned long)header->min * 16);
     if (header->max)
-        fprintf(out, " MAX(%.1fk %u)", header->max / 64.0, header->max * 16);
-    fprintf(out, " LEN(%u)", header->length*16);
+        fprintf(out, "MX(%.1fk=%lu)", header->max / 64.0, (unsigned long)header->max * 16);
+    fprintf(out, "LEN(%lu)", (unsigned long)header->length*16);
     fprintf(out, "\n");
     if (type == 1 || type == 2) {
         dump(out, index, tolower(g_type[type][0]), header->base, header->length*16,
@@ -227,6 +227,7 @@ usage() {
     fprintf(stderr, "     - displays CMD headers\n");
     fprintf(stderr, "     cmdinfo -e file.cmd\n");
     fprintf(stderr, "     - extracts code segments (c<index>-<base>.bin)\n");
+    fprintf(stderr, "     - extracts data segments (d<index>-<base>.bin)\n");
 }
 
 #ifndef __LEGACY__
