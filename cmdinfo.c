@@ -67,7 +67,7 @@ char *g_type[16] = {"NULL",      "CODE",        "DATA",      "EXTRA",
 
 #ifndef __LEGACY__
 void dump(FILE *out, int index, char type, uint16_t base, uint16_t length,
-          size_t offset, FILE *fin) {
+          long offset, FILE *fin) {
 #else
 void dump(out, index, type, base, length, offset, fin) 
           FILE *out; 
@@ -75,7 +75,7 @@ void dump(out, index, type, base, length, offset, fin)
           char type; 
           uint16_t base; 
           uint16_t length;
-          size_t offset; 
+          long offset; 
           FILE *fin; {
 #endif
     char file_name[12 + 1];
@@ -103,9 +103,11 @@ void dump(out, index, type, base, length, offset, fin)
         unlink(file_name);
         return;
     }
+    /*fprintf(stderr,"offset:%lu\n",offset);*/
     while (left > 0) {
         size_t mo;
         size_t mi = fread(buffer, 1, 128>left?left:128, fin);
+        /*fprintf(stderr,"left:%lu %lu mi:%lu\n",left,128>left?left:128, mi);*/
         if (mi == 0) {
             if (ferror(fin)) {
                 fprintf(stderr, "ERR: Cannot read input (%d,%lu)\n", index,
@@ -118,7 +120,7 @@ void dump(out, index, type, base, length, offset, fin)
         }
         mo = fwrite(buffer, 1, mi>left?left:mi, fout);
         if (mo != mi) {
-            fprintf(stderr, "ERR: Cannot rite output fully to (%s)\n",
+            fprintf(stderr, "ERR: Cannot write output fully to (%s)\n",
                     file_name);
             fclose(fout);
             unlink(file_name);
@@ -131,14 +133,14 @@ void dump(out, index, type, base, length, offset, fin)
 
 #ifndef __LEGACY__
 void display_header(FILE *out, const char *name, int index, header_t *header,
-                    size_t *offset, FILE *fin) {
+                    long *offset, FILE *fin) {
 #else
 display_header(out, name, index, header, offset, fin) 
         FILE *out; 
         char *name; 
         int index; 
         header_t *header;
-        size_t *offset;
+        long *offset;
         FILE *fin; 
 {
 #endif
@@ -158,7 +160,8 @@ display_header(out, name, index, header, offset, fin)
     fprintf(out, "LEN(%lu)", (unsigned long)header->length*16);
     fprintf(out, "\n");
     if (type == 1 || type == 2) {
-        dump(out, index, tolower(g_type[type][0]), header->base, header->length*16,
+        dump(out, index, (char)tolower(g_type[type][0]), 
+            header->base, header->length*16,
              *offset, fin);
     }
     *offset += header->length*16;
@@ -176,13 +179,8 @@ display_header_block(out, name,  block, fin)
 {
 #endif
     int i;
-    size_t offset = 128+256;
+    long offset = 128;
 
-    for (i = 0; i < 8; i++) {
-        if((block->header[i].form & 0xF) == 2) {
-            offset=128;
-        }
-    }
     for (i = 0; i < 8; i++) {
         display_header(out, name, i, block->header + i, &offset, fin);
     }
