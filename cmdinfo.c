@@ -150,7 +150,7 @@ display_header(out, name, index, header, offset, fin)
     }
     type = header->form & 0xF;
     fprintf(out, "INF: HDR(%d)",index);
-    fprintf(out, "TYP(0x%02x", header->form);
+    fprintf(out, "TYP(%02d", header->form);
     fprintf(out, ",%s)", g_type[header->form]);
     fprintf(out, "BAS(%04xh)", header->base);
     if (header->min)
