@@ -17,9 +17,8 @@ bin2cmd and exe2cmd originate from John Elliot Code...
 - Regress test the submit script
 - Adjust exe2cmd to work with basic exes
 
-## Build Env
-
-- Makefile compiles for a reasonable unix (OSX, Linux)
-- Makefile.dos compilers for (DOS using Aztec C) (Will need to be adapted, I am using the emu2 emulator)
-- Makefile.cpm86 compilers for (CP/M-86 using Aztec C)  (Will need to be adapted, I am using the emu2 emulator)
+## Build Environment
+- Makefile compiles for a reasonable unix (linux/mac)
+- Makefile.dos for DOS Aztec C compilers.  (May require adaptation. emu2 is used to run dos compiler on unix/mac)
+- Makefile.cpm86 for DOS Aztec C cross compilers targetting CP/M-86.  (May require adaptation. emu2 is used to run dos compiler on unix/mac)
 
