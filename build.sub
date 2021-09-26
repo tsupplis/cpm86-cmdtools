@@ -7,4 +7,6 @@ ln -o bin2cmd.cmd bin2cmd.o -lm -lc
 cc -D__CPM86__ -D__LEGACY__ -ic: exe2cmd.c
 sqz exe2cmd.o
 ln -o exe2cmd.cmd exe2cmd.o c:m.lib -lc
-era *.o
+era cmdinfo.o
+era bin2cmd.o
+era exe2cmd.o
