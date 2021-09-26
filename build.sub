@@ -1,10 +1,10 @@
-c:cc -D__CPM86__ -D__LEGACY__ -ic: cmdinfo
-c:as -zap cmdinfo
-c:ln -o cmdinfo.cmd cmdinfo.o c:m.lib c:c.lib
-c:cc -ic: bin2cmd
-c:as -zap bin2cmd
-ln -o bin2cmd.cmd bin2cmd.o c:m.lib c:c.lib
-c:cc -ic: exe2cmd
-c:as -zap exe2cmd
-ln -o exe2cmd.cmd exe2cmd.o c:m.lib c:c.lib
+cc -D__CPM86__ -D__LEGACY__ -ic: cmdinfo.c
+sqz cmdinfo.o
+ln -o cmdinfo.cmd cmdinfo.o c:m.lib -lc
+cc -D__CPM86__ -D__LEGACY__ -ic: bin2cmd.c
+sqz bin2cmd.o
+ln -o bin2cmd.cmd bin2cmd.o -lm -lc
+cc -D__CPM86__ -D__LEGACY__ -ic: exe2cmd.c
+sqz exe2cmd.o
+ln -o exe2cmd.cmd exe2cmd.o c:m.lib -lc
 era *.o
