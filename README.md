@@ -1,4 +1,4 @@
-# cpm86-cmdtools
+# CP/M-86 CMD Tools
 
 ## Synopsis
 
@@ -42,7 +42,7 @@ make clean all
 ```
 it pulls the following:
 - aztec 3.4 c compiler  (https://www.aztecmuseum.ca/az8634b.zip)
-- linkcmd and rasm86 (http://www.seasip.info/Cpm/software/dpgen.zip)
+- linkcmd and rasm86 (http://www.cpm.z80.de/download/tools86.zip)
 - emu2 (https://github.com/dmsc/emu2)
 
 ## Test Environment
