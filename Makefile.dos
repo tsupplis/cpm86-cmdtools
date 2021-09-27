@@ -1,8 +1,8 @@
-CC=aztec_cc
-CFLAGS=-D__MSDOS__
-STRIP=aztec_sqz
+CC=aztec34_cc
+CFLAGS=-D__MSDOS__ -D__LEGACY__
+STRIP=aztec34_sqz
 LDFLAGS=-lm -lc
-LD=aztec_link
+LD=aztec34_link
 BINEXT=.com
 
 TOOLS=cmdinfo$(BINEXT) bin2cmd$(BINEXT) exe2cmd$(BINEXT)
