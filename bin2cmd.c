@@ -51,6 +51,7 @@ int main_alt(argc, argv)
     FILE *fin, *fout;
     long pos, paras, maxsize;
     int c;
+    int rest=0;
 
     if (argc < 3) {
         fprintf(stderr,"ERR: Invalid command line\n");
@@ -79,6 +80,7 @@ int main_alt(argc, argv)
     /* Calculate size in paragraphs. Add 16 paragraphs for the
      * Zero Page. */
     paras = (pos + 15) / 16 + 0x10;
+    rest=(paras-1)*16-pos;
 
     /* The CP/M-86 CMD format does not allow groups larger than 1M */
     if (paras > 0xFFFF) {
@@ -121,6 +123,15 @@ int main_alt(argc, argv)
     /* Copy data */
     while ((c = fgetc(fin)) != EOF) {
         if (fputc(c, fout) == EOF) {
+            fprintf(stderr,"ERR: Can't write content to output (%d)\n",errno);
+            fclose(fout);
+            unlink(argv[2]);
+            fclose(fin);
+            return 1;
+        }
+    }
+    while(rest--) {
+        if (fputc(0, fout) == EOF) {
             fprintf(stderr,"ERR: Can't write content to output (%d)\n",errno);
             fclose(fout);
             unlink(argv[2]);
