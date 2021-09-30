@@ -1,5 +1,5 @@
 CC=aztec_cc
-CFLAGS=-D__CPM86__  -D__LEGACY__
+CFLAGS=-D__CPM86__ 
 STRIP=aztec_sqz
 LDFLAGS=-lm -lc86
 LD=aztec_link

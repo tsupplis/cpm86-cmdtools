@@ -1,5 +1,5 @@
 CC=aztec34_cc
-CFLAGS=-D__MSDOS__ -D__LEGACY__
+CFLAGS=-D__MSDOS__
 STRIP=aztec34_sqz
 LDFLAGS=-lm -lc
 LD=aztec34_link

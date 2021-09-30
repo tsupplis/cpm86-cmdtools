@@ -1,10 +1,10 @@
-cc -D__CPM86__ -D__LEGACY__ -ic: cmdinfo.c
+cc -D__CPM86__ -ic: cmdinfo.c
 sqz cmdinfo.o
 ln -o cmdinfo.cmd cmdinfo.o c:m.lib -lc
-cc -D__CPM86__ -D__LEGACY__ -ic: bin2cmd.c
+cc -D__CPM86__ -ic: bin2cmd.c
 sqz bin2cmd.o
 ln -o bin2cmd.cmd bin2cmd.o -lm -lc
-cc -D__CPM86__ -D__LEGACY__ -ic: exe2cmd.c
+cc -D__CPM86__ -ic: exe2cmd.c
 sqz exe2cmd.o
 ln -o exe2cmd.cmd exe2cmd.o c:m.lib -lc
 era cmdinfo.o

@@ -15,19 +15,19 @@
  *    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
-#ifndef __LEGACY__
+#ifdef __STDC__
 #include <string.h>
 #endif
 #include <ctype.h>
 #include <stdio.h>
-#ifndef __LEGACY__
+#ifdef __STDC__
 #if defined(__APPLE__) || defined(__gnu_linux__)
 #include <unistd.h>
 #include <libgen.h>
 #define PACK __attribute__((packed))
 #endif
 #endif
-#ifndef __LEGACY__
+#ifdef __STDC__
 #include <stdint.h>
 #include <stdlib.h>
 #else
@@ -65,7 +65,7 @@ char *g_type[16] = {"NULL",      "CODE",        "DATA",      "EXTRA",
                     "AUX #4",    "SHARED CODE", "UNUSED 10", "UNUSED 11",
                     "UNUSED 12", "UNUSED 13",   "UNUSED 14", "ESCAPE CODE"};
 
-#ifndef __LEGACY__
+#ifdef __STDC__
 void dump(FILE *out, int index, char type, uint16_t base, uint16_t length,
           long offset, FILE *fin) {
 #else
@@ -131,7 +131,7 @@ void dump(out, index, type, base, length, offset, fin)
     fclose(fout);
 }
 
-#ifndef __LEGACY__
+#ifdef __STDC__
 void display_header(FILE *out, const char *name, int index, header_t *header,
                     long *offset, FILE *fin) {
 #else
@@ -167,7 +167,7 @@ display_header(out, name, index, header, offset, fin)
     *offset += header->length*16;
 }
 
-#ifndef __LEGACY__
+#ifdef __STDC__
 void display_header_block(FILE *out, const char *name, header_block_t *block,
                           FILE *fin) {
 #else
@@ -186,7 +186,7 @@ display_header_block(out, name,  block, fin)
     }
 }
 
-#ifndef __LEGACY__
+#ifdef __STDC__
 int display_file(FILE *out, const char *name, int extract) {
 #else
 int display_file(out, name, extract) 
@@ -215,7 +215,7 @@ int display_file(out, name, extract)
     return 0;
 }
 
-#ifndef __LEGACY__
+#ifdef __STDC__
 void usage() {
 #else
 usage() {
@@ -228,7 +228,7 @@ usage() {
     fprintf(stderr, "     - extracts data segments (d<index>-<base>.bin)\n");
 }
 
-#ifndef __LEGACY__
+#ifdef __STDC__
 int main(int argc, char **argv) {
 #else
 int main(argc, argv) 

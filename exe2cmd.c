@@ -18,7 +18,7 @@
  *
  */
 
-#ifndef __LEGACY__
+#ifdef __STDC__
 #include <string.h>
 #include <stdlib.h>
 #endif
@@ -38,22 +38,22 @@ unsigned char cmd_header[0x80];
 
 
 /* Read a word from the EXE header */
-#ifndef __LEGACY__
-unsigned short peek(int offset) {
+#ifdef __STDC__
+unsigned short peek(int offset) 
 #else
 unsigned short peek(offset) 
     int offset;
-{
 #endif
+{
     unsigned short l = exe_header[offset];
     unsigned short h = exe_header[offset + 1];
     return (h << 8) | l;
 }
 
 /* Add a group to the CMD header */
-#ifndef __LEGACY__
+#ifdef __STDC__
 void addgroup(int type, unsigned short paras, unsigned short base,
-			  unsigned short minparas, unsigned short maxparas) {
+			  unsigned short minparas, unsigned short maxparas) 
 #else
 addgroup(type, paras, base, minparas, maxparas)
     int type; 
@@ -61,8 +61,8 @@ addgroup(type, paras, base, minparas, maxparas)
     unsigned short base;
     unsigned short minparas; 
     unsigned short maxparas;
-{
 #endif
+{
 	static unsigned char *group = cmd_header;
 	*group++ = type;
 	*group++ = (paras & 0xFF);
@@ -79,15 +79,15 @@ addgroup(type, paras, base, minparas, maxparas)
 
 /* Copy bytes from one file to another. 
  * TODO: Warn if error. */
-#ifndef __LEGACY__
-void mvbytes(FILE *fpexe, FILE *fpcmd, long count) {
+#ifdef __STDC__
+void mvbytes(FILE *fpexe, FILE *fpcmd, long count) 
 #else
 mvbytes(fpexe,fpcmd,count) 
     FILE *fpexe; 
     FILE *fpcmd; 
     long count;
-{
 #endif
+{
 	int c;
 	
 	while (count)
@@ -99,14 +99,14 @@ mvbytes(fpexe,fpcmd,count)
 }
 
 
-#ifndef __LEGACY__
-int main_alt(int argc, char **argv) {
+#ifdef __STDC__
+int main_alt(int argc, char **argv) 
 #else
 int main_alt(argc, argv) 
         int argc; 
         char **argv; 
-{
 #endif
+{
 	FILE *fpexe, *fpcmd;
 	unsigned short cseg,dseg,sseg,dstop;
 	unsigned short dsmin, dsmax, exeparas;
@@ -228,14 +228,14 @@ int main_alt(argc, argv)
 	return 0;
 }
 
-#ifndef __LEGACY__
-int main(int argc, char **argv) {
+#ifdef __STDC__
+int main(int argc, char **argv)
 #else
 int main(argc, argv) 
         int argc; 
         char **argv; 
-{
 #endif
+{
     exit(main_alt(argc,argv));
     return 0;
 }

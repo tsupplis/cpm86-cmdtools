@@ -15,14 +15,14 @@
  *    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
-#ifndef __LEGACY__
+#ifdef __STDC__
 #include <string.h>
 #include <stdlib.h>
 #endif
 #include <stdio.h>
 #include <errno.h>
 
-#ifndef __LEGACY__
+#ifdef __STDC__
 #if defined(__APPLE__) || defined(__gnu_linux__)
 #include <unistd.h>
 #define BINARY_READ "rb"
@@ -40,7 +40,7 @@
 
 unsigned char header[384];
 
-#ifndef __LEGACY__
+#ifdef __STDC__
 int main_alt(int argc, char **argv) {
 #else
 int main_alt(argc, argv) 
@@ -138,7 +138,7 @@ int main_alt(argc, argv)
     return 0;
 }
 
-#ifndef __LEGACY__
+#ifdef __STDC__
 int main(int argc, char **argv) {
 #else
 int main(argc, argv) 
