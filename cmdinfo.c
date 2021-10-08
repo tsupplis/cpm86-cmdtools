@@ -87,7 +87,7 @@ void dump(out, index, type, base, length, offset, fin)
         return;
     }
     sprintf(file_name, "%c%d-%04x.bin", type, index, base);
-    fprintf(out, "INF: Output to %s\n", file_name);
+    fprintf(out, "INF: Output to %s (%u bytes)\n", file_name,length);
     unlink(file_name);
     fout = fopen(file_name, "w");
     if (!fout) {
@@ -115,6 +115,9 @@ void dump(out, index, type, base, length, offset, fin)
                 fclose(fout);
                 unlink(file_name);
                 return;
+            }
+            if(left) {
+                fprintf(stderr, "WRN: Full length not available (%u missing)\n",left);
             }
             break;
         }
