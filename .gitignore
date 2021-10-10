@@ -18,7 +18,8 @@ cmdinfo
 exe2cmd
 .*.swp
 *.obj
-**/*.img
+**/cpm86.img
+**/cpmtest.img
 **/*.sym
 **/*.lst
 .vscode
