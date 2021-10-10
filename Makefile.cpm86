@@ -1,8 +1,8 @@
-CC=aztec_cc
+CC=aztec34_cc
 CFLAGS=-D__CPM86__ 
-STRIP=aztec_sqz
+STRIP=aztec34_sqz
 LDFLAGS=-lm -lc86
-LD=aztec_link
+LD=aztec34_link
 BINEXT=.cmd
 
 TOOLS=cmdinfo$(BINEXT) bin2cmd$(BINEXT) exe2cmd$(BINEXT)
@@ -23,5 +23,12 @@ exe2cmd$(BINEXT): exe2cmd.o
 	$(STRIP) $@
 
 clean:
-	$(RM) *.o $(TOOLS)
+	$(RM) *.o $(TOOLS) cpmtest.img
 
+cpmtest.img: $(TOOLS) Makefile 
+	cp cpmbase.img cpmtest.img
+	cpmcp -f ibmpc-514ss cpmtest.img *.cmd 0:
+	cpmls -F -f ibmpc-514ss cpmtest.img 0:*.*
+
+test: cpmtest.img
+	./cpm86
