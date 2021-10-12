@@ -1,0 +1,4 @@
+era cmdinfo.cmd
+era bin2cmd.cmd
+era exe2cmd.cmd
+era *.o

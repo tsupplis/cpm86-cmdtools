@@ -1,12 +1,9 @@
-cc -D__CPM86__ -ic: cmdinfo.c
+cc -D__CPM86__ -ip: cmdinfo.c
 sqz cmdinfo.o
-ln -o cmdinfo.cmd cmdinfo.o c:m.lib -lc
-cc -D__CPM86__ -ic: bin2cmd.c
+ln -o cmdinfo.cmd cmdinfo.o p:m.lib p:c.lib
+cc -D__CPM86__ -ip: bin2cmd.c
 sqz bin2cmd.o
-ln -o bin2cmd.cmd bin2cmd.o -lm -lc
-cc -D__CPM86__ -ic: exe2cmd.c
+ln -o bin2cmd.cmd bin2cmd.o p:m.lib p:c.lib
+cc -D__CPM86__ -ip: exe2cmd.c
 sqz exe2cmd.o
-ln -o exe2cmd.cmd exe2cmd.o c:m.lib -lc
-era cmdinfo.o
-era bin2cmd.o
-era exe2cmd.o
+ln -o exe2cmd.cmd exe2cmd.o p:m.lib p:c.lib

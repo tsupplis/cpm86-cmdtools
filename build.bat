@@ -1,13 +1,9 @@
-@echo off
-cc cmdinfo.c
+cc -D__MSDOS__ cmdinfo.c
 sqz cmdinfo.o
-ln -o cmdinfo.cmd cmdinfo.o c:m.lib -lc
-cc bin2cmd.c
+ln -o cmdinfo.com cmdinfo.o -lm -lc
+cc -D__MSDOS__ bin2cmd.c
 sqz bin2cmd.o
-ln -o bin2cmd.cmd bin2cmd.o -lm -lc
-cc exe2cmd.c
+ln -o bin2cmd.com bin2cmd.o -lm -lc
+cc -D__MSDOS__ exe2cmd.c
 sqz exe2cmd.o
-ln -o exe2cmd.cmd exe2cmd.o c:m.lib -lc
-del cmdinfo.o
-del bin2cmd.o
-del exe2cmd.o
+ln -o exe2cmd.com exe2cmd.o -lm -lc
