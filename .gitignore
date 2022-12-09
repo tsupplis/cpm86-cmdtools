@@ -1,3 +1,4 @@
+rom
 **/*.lock
 test
 **/cpm86

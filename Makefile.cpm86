@@ -26,9 +26,13 @@ clean:
 	$(RM) *.o $(TOOLS) cpmtest.img
 
 cpmtest.img: $(TOOLS) Makefile 
-	cp cpmbase.img cpmtest.img
+	cp base.img cpmtest.img
 	cpmcp -f ibmpc-514ss cpmtest.img *.cmd 0:
 	cpmls -F -f ibmpc-514ss cpmtest.img 0:*.*
 
-test: cpmtest.img
+cpm86.img:
+	wget https://github.com/tsupplis/cpm86-kernel/releases/download/v1.1-03-01/cpm86-1.img
+	mv cpm86-1.img cpm86.img
+
+test: cpmtest.img cpm86-1.img
 	./cpm86
