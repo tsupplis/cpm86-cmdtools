@@ -21,7 +21,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #ifdef __STDC__
-#if defined(__APPLE__) || defined(__gnu_linux__)
+#if defined(__APPLE__) || defined(__gnu_linux__) || defined(__GNUC__) || defined(__clang__)
 #include <unistd.h>
 #include <libgen.h>
 #define PACK __attribute__((packed))
@@ -47,18 +47,22 @@ typedef unsigned int size_t;
 #define basename(a) (a)
 #endif
 
-typedef struct PACK _header_t {
+struct PACK _header_t {
     uint8_t form;
     uint16_t length;
     uint16_t base;
     uint16_t min;
     uint16_t max;
-} header_t;
+};
 
-typedef struct PACK _header_block_t {
+typedef struct _header_t header_t;
+
+struct PACK _header_block_t {
     header_t header[8];
     uint8_t padding[56];
-} header_block_t;
+};
+
+typedef struct _header_block_t header_block_t;
 
 char *g_type[16] = {"NULL",      "CODE",        "DATA",      "EXTRA",
                     "STACK",     "AUX #1",      "AUX #2",    "AUX #3",

@@ -23,7 +23,7 @@
 #include <errno.h>
 
 #ifdef __STDC__
-#if defined(__APPLE__) || defined(__gnu_linux__)
+#if defined(__APPLE__) || defined(__gnu_linux__) || defined(__GNUC__) || defined(__clang__)
 #include <unistd.h>
 #define BINARY_READ "rb"
 #define BINARY_WRITE "wb"
