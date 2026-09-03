@@ -1,0 +1,67 @@
+#!/bin/sh
+# Regression test for cmdinfo -e using basic.cmd
+# Tests that CODE, DATA, and EXTRA segments are extracted with correct size and content.
+
+PASS=0
+FAIL=0
+
+check() {
+    label="$1"
+    actual="$2"
+    expected="$3"
+    if [ "$actual" = "$expected" ]; then
+        echo "PASS: $label"
+        PASS=$((PASS + 1))
+    else
+        echo "FAIL: $label"
+        echo "      expected: $expected"
+        echo "      actual:   $actual"
+        FAIL=$((FAIL + 1))
+    fi
+}
+
+# ---- clean up any leftover extracts ----
+rm -f c0-0000.bin d1-0000.bin e2-0000.bin
+
+# ---- run extraction ----
+OUTPUT=$(../cmdinfo -e basic.cmd 2>&1)
+
+# ---- check console output lines ----
+check "CODE header line" \
+    "$(echo "$OUTPUT" | grep 'HDR(0)')" \
+    "INF: HDR(0)TYP(01,CODE)BAS(0000h)MN(47.8k=48992)LEN(48992)"
+
+check "CODE extract line" \
+    "$(echo "$OUTPUT" | grep 'Output to c0')" \
+    "INF: Output to c0-0000.bin (48992 bytes)"
+
+check "DATA header line" \
+    "$(echo "$OUTPUT" | grep 'HDR(1)')" \
+    "INF: HDR(1)TYP(02,DATA)BAS(0000h)MN(16.0k=16384)MX(63.8k=65280)LEN(2368)"
+
+check "DATA extract line" \
+    "$(echo "$OUTPUT" | grep 'Output to d1')" \
+    "INF: Output to d1-0000.bin (2368 bytes)"
+
+check "EXTRA header line" \
+    "$(echo "$OUTPUT" | grep 'HDR(2)')" \
+    "INF: HDR(2)TYP(03,EXTRA)BAS(0000h)MN(3.6k=3680)LEN(3680)"
+
+check "EXTRA extract line" \
+    "$(echo "$OUTPUT" | grep 'Output to e2')" \
+    "INF: Output to e2-0000.bin (3680 bytes)"
+
+# ---- check extracted file sizes ----
+check "CODE segment size"  "$(wc -c < c0-0000.bin | tr -d ' ')" "48992"
+check "DATA segment size"  "$(wc -c < d1-0000.bin | tr -d ' ')" "2368"
+check "EXTRA segment size" "$(wc -c < e2-0000.bin | tr -d ' ')" "3680"
+
+# ---- check extracted file checksums (MD5) ----
+check "CODE segment md5"  "$(md5 -q c0-0000.bin)" "e35950267b9fccc1c90be8aa6891859a"
+check "DATA segment md5"  "$(md5 -q d1-0000.bin)" "17ef2470fbf1bd30994e780255235de5"
+check "EXTRA segment md5" "$(md5 -q e2-0000.bin)" "51438b147a9e6eff8d95c34dc4e0a836"
+
+# ---- summary ----
+echo ""
+echo "Results: $PASS passed, $FAIL failed"
+[ $FAIL -eq 0 ]
