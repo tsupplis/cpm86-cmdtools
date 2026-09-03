@@ -162,8 +162,8 @@ display_header(out, name, index, header, offset, fin)
         fprintf(out, "MX(%.1fk=%lu)", header->max / 64.0, (unsigned long)header->max * 16);
     fprintf(out, "LEN(%lu)", (unsigned long)header->length*16);
     fprintf(out, "\n");
-    if (type == 1 || type == 2) {
-        dump(out, index, (char)tolower(g_type[type][0]), 
+    if (type == 1 || type == 2 || type == 3) {
+        dump(out, index, (char)tolower(g_type[type][0]),
             header->base, header->length*16,
              *offset, fin);
     }
@@ -229,6 +229,7 @@ usage() {
     fprintf(stderr, "     cmdinfo -e file.cmd\n");
     fprintf(stderr, "     - extracts code segments (c<index>-<base>.bin)\n");
     fprintf(stderr, "     - extracts data segments (d<index>-<base>.bin)\n");
+    fprintf(stderr, "     - extracts extra segments (e<index>-<base>.bin)\n");
 }
 
 #ifdef __STDC__
