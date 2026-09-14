@@ -240,7 +240,7 @@ display_header(out, name, index, header, offset, fin)
     if(header->base) {
     fprintf(out, " BASE(FIXED,%04xh)", header->base);
     } else {
-        fprintf(out, " BASE(RELOCATABLE)");
+        fprintf(out, " BASE(RELOC)");
     }
     if (header->min)
         fprintf(out, " MIN(%.1fk=%lu)", header->min / 64.0, (unsigned long)header->min * 16);
