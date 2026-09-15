@@ -37,7 +37,7 @@ For this cross development environment, please use (https://github.com/tsupplis/
 - CP/M-86 1.1 for IBM PC XT. I recompile cpm.sys from patched sources from (http://www.cpm.z80.de/source.html). The simple way to start however is probably (http://www.cpm.z80.de/download/144cpm86.zip)
   - CP/M-86 1.1, CCP/M-86 3.1 and PCP/M-2.0 can be found on (http://www.cpm.z80.de)
   - DOS Plus 1.2 and Patched kernel can be found on (https://www.seasip.info/Cpm/dosplus.html)
-- The Super Excellent command line emulator for DOS/CP/M-86 
+- The most excellent CLI emulator for DOS and CP/M-86 is available at https://github.com/johnsonjh/emu2-cpm86 and delivered as part of the crossdev project.
 - The Excellent PCE emulator (http://www.hampa.ch/pce/pce-ibmpc.html)
 - A sample directory is added to play around
 - mtools 4 and cpmtools 2.20
