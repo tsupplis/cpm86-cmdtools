@@ -58,6 +58,26 @@
 
 unsigned char header[128];
 
+/* Parse an unsigned hex string (no 0x prefix). Returns -1 on error. */
+#ifdef __STDC__
+long parsehex(const char *s) {
+#else
+long parsehex(s) char *s; {
+#endif
+    long val = 0;
+    if (!s || !*s) return -1;
+    while (*s) {
+        int d;
+        if (*s >= '0' && *s <= '9')      d = *s - '0';
+        else if (*s >= 'a' && *s <= 'f') d = *s - 'a' + 10;
+        else if (*s >= 'A' && *s <= 'F') d = *s - 'A' + 10;
+        else return -1;
+        val = val * 16 + d;
+        s++;
+    }
+    return val;
+}
+
 #ifdef __STDC__
 void usage() {
 #else
@@ -94,7 +114,11 @@ int main_alt(argc, argv)
             argc--; argv++;
         } else if (strcmp(argv[1], "-m") == 0) {
             if (argc < 3) { usage(); return 1; }
-            maxsize = strtol(argv[2], 0, 16);
+            maxsize = parsehex(argv[2]);
+            if (maxsize < 0) {
+                fprintf(stderr, "ERR: -m value is not a valid hex number\n");
+                return 1;
+            }
             if (maxsize > 0x10000) {
                 fprintf(stderr, "WRN: -m value clamped to 10000h (64K)\n");
                 maxsize = 0x10000;
