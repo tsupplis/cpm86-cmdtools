@@ -38,7 +38,7 @@ cmdmod -d file.cmd index
 | Option | Description | Default (existing group) | Default (new group) |
 |--------|-------------|--------------------------|---------------------|
 | `-s file.bin` | Replace the group content, padded to 16 bytes | unchanged | length 0 |
-| `-t type` | Type 1-9 (1 code, 2 data, 3 extra, 4 stack, 5-8 aux, 9 shared code) | unchanged | index+1 |
+| `-t type` | Type 1-9, or the cmdinfo mnemonics `CODE` `DATA` `EXTRA` `STACK` `AUX1`-`AUX4` `SHARED` (case-insensitive) | unchanged | index+1 |
 | `-b basehex` | Base in hex paragraphs, 0 = relocatable | unchanged | 0 |
 | `-n minhex` | Min size in hex bytes (`-n 0` resets it to the group length) | unchanged | group length |
 | `-m maxhex` | Max size in hex bytes, 0 = no constraint, clamped to 10000h | unchanged | 0 |
@@ -48,8 +48,9 @@ cmdmod -d file.cmd index
 - A new group without `-s` has length 0 and needs `-n`, e.g. `cmdmod -t 4 -n 400 prog.cmd 3` adds a 1K stack group with no content
 - The min size is raised to the group length when smaller (warning if given with `-n`); an explicit max smaller than the length or min is an error
 - Files with RSX or fixup records are refused, as is deleting the only group
+- Warns (`WRN:`) when the resulting file is 8080 model and has groups the loader ignores, see below
 - The file is rewritten through a temporary `.$$$` file, groups are padded to 16 bytes and the file to 512 bytes
-- `make test-cmdmod` runs a regression scenario in `./cmdmod-test` (and `make test-bin2cmd` one for bin2cmd in `./bin2cmd-test`)
+- `make test-cmdmod` and `make test-bin2cmd` run regression scenarios in `./cmdmod-test` and `./bin2cmd-test`, using `test.bin` (a masm "hello" for CP/M-86); the result is run with `emu2` when available (`EMU=` to override)
 
 ## exe2cmd Usage
 
@@ -150,6 +151,31 @@ The loader adds the destination group segment address to the word specified. CP/
 ### STM obfuscation
 
 In `.STM` files (SpeedStart CP/M-86), the first group (usually code) has every word XORed with `0xA5B4`: even-numbered bytes with `0xB4`, odd-numbered bytes with `0xA5`.
+
+## Loader notes: 8080 model (CP/M-86 1.1 kernel)
+
+Reference: `bdos.a86` (function 59, load program) and `ccp.a86` of [cpm86-kernel](https://github.com/tsupplis/cpm86-kernel).
+
+A file is **8080 model** when none of its 8 descriptors has type 2 (DATA). Otherwise it is not.
+
+| | 8080 model (no DATA group) | With a DATA group |
+|---|---|---|
+| CS:IP | code base : `0100h` | code base : `0` |
+| DS | code base (the code group starts with the 100h-byte base page) | DATA group base (which starts with the base page) |
+| ES | = DS, even if an EXTRA group exists | = DS, or the EXTRA group base if one exists |
+| SS:SP | not set, the CCP stack is used | not set, the CCP stack is used |
+| Group bases | only the first descriptor gets a base | every relocatable group gets a base, in descriptor order |
+| Base page group table | code and data entries both describe the first group; other entries stay 0 | one 6-byte entry per type 1-8 (length-1 and base) |
+| Type 9 (shared code) | not converted to code, CS would be 0 | converted to code |
+| Memory allocated | sum of all relocatable groups (max, or min if no max) | same |
+
+The loader never sets SS:SP from a STACK group: the group is allocated and its base is recorded in the base page, the program has to load SS:SP itself.
+
+`cmdinfo` prints `MODEL(8080)` for such files, and both `cmdinfo` and `cmdmod` warn (`WRN:`) about:
+- groups other than the first one, which are ignored by the loader (STACK, EXTRA, AUX...)
+- relocatable groups with content, which would be loaded at segment 0
+- no CODE group (e.g. only type 9), so CS would be 0
+- a code group shorter than the 100h-byte base page
 
 ## TODOs
 

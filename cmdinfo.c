@@ -256,6 +256,55 @@ display_header(out, name, index, header, offset, fin)
     *offset += header->length*16;
 }
 
+/*
+ * 8080 model, as decided by the CP/M-86 1.1 loader (bdos.a86, function 59):
+ * a file without any DATA group (type 2) is 8080 model. Then:
+ *  - only the first descriptor gets a base (STLDBS); other relocatable
+ *    groups keep base 0, are not recorded in the base page, and their
+ *    content (if any) is loaded at segment 0
+ *  - type 9 (shared code) is not turned into code (so CS would be 0)
+ *  - CS=DS=ES, IP=0100h, so the code group starts with a 100h-byte base page
+ *    (an EXTRA group does not set ES: base page word 0Fh stays 0)
+ */
+#ifdef __STDC__
+void check_8080(FILE *out, header_block_t *block) {
+#else
+check_8080(out, block) 
+        FILE *out; 
+        header_block_t *block; 
+{
+#endif
+    int i, has_data = 0, code = -1;
+    for (i = 0; i < 8; i++) {
+        if (block->header[i].form == 2) {
+            has_data = 1;
+        }
+        if (block->header[i].form == 1 && code < 0) {
+            code = i;
+        }
+    }
+    if (has_data) {
+        return;
+    }
+    fprintf(out, "INF:   MODEL(8080) (no DATA group: CS=DS=ES, IP=0100h)\n");
+    for (i = 1; i < 8; i++) {
+        header_t *h = block->header + i;
+        if (!h->form) {
+            continue;
+        }
+        fprintf(stderr, "WRN: HDR(%d) TYPE(%02d,%s) is ignored by the loader in 8080 model (no DATA group)\n",
+                i, h->form, g_type[h->form & 0xF]);
+        if (!h->base && h->length) {
+            fprintf(stderr, "WRN: HDR(%d) content would be loaded at segment 0\n", i);
+        }
+    }
+    if (code < 0) {
+        fprintf(stderr, "WRN: no CODE group in 8080 model (type 9 is not converted), CS would be 0\n");
+    } else if (block->header[code].length < 0x10) {
+        fprintf(stderr, "WRN: HDR(%d) CODE group is shorter than the 100h-byte base page of 8080 model\n", code);
+    }
+}
+
 #ifdef __STDC__
 void display_header_block(FILE *out, const char *name, header_block_t *block,
                           FILE *fin) {
@@ -311,6 +360,7 @@ display_header_block(out, name,  block, fin)
     for (i = 0; i < 8; i++) {
         display_header(out, name, i, block->header + i, &offset, fin);
     }
+    check_8080(out, block);
 }
 
 #ifdef __STDC__

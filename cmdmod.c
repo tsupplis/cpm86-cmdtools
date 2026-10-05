@@ -128,6 +128,67 @@ int padn(fout, n) FILE *fout; long n; {
     return 0;
 }
 
+static char *tnames[] = {"code", "data", "extra", "stack", "aux1", "aux2",
+                         "aux3", "aux4", "sharedcode", "shared", NULL};
+static int tvalues[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 9};
+
+/* Parse a group type: 1-9, or a cmdinfo mnemonic (CODE, DATA, EXTRA, STACK,
+ * AUX1-AUX4, SHARED CODE), case-insensitive, spaces and '#' ignored.
+ * Returns -1 on error. */
+#ifdef __STDC__
+int parsetype(const char *s) {
+#else
+int parsetype(s) char *s; {
+#endif
+    char buf[16];
+    int i, n = 0;
+    for (; *s; s++) {
+        if (*s == ' ' || *s == '#') continue;
+        if (n >= (int)sizeof(buf) - 1) return -1;
+        buf[n++] = (*s >= 'A' && *s <= 'Z') ? *s - 'A' + 'a' : *s;
+    }
+    buf[n] = 0;
+    for (i = 0; tnames[i]; i++) {
+        if (strcmp(buf, tnames[i]) == 0) return tvalues[i];
+    }
+    if (n == 1 && buf[0] >= '1' && buf[0] <= '9') return buf[0] - '0';
+    return -1;
+}
+
+/*
+ * 8080 model, as decided by the CP/M-86 1.1 loader (bdos.a86, function 59):
+ * a file without any DATA group (type 2) is 8080 model. Then only the first
+ * descriptor gets a base; other relocatable groups keep base 0 and are not
+ * recorded in the base page (content would be loaded at segment 0), type 9
+ * is not turned into code, and CS=DS=ES with IP=0100h so the code group
+ * starts with a 100h-byte base page (an EXTRA group does not set ES).
+ */
+#ifdef __STDC__
+void check_8080(unsigned char nd[][DESC_SIZE]) {
+#else
+check_8080(nd) unsigned char nd[][DESC_SIZE]; {
+#endif
+    int i, has_data = 0, code = -1;
+    for (i = 0; i < NGROUPS; i++) {
+        if (nd[i][0] == 2) has_data = 1;
+        if (nd[i][0] == 1 && code < 0) code = i;
+    }
+    if (has_data) return;
+    fprintf(stderr, "WRN: no DATA group, 8080 model (CS=DS=ES, IP=0100h)\n");
+    for (i = 1; i < NGROUPS; i++) {
+        if (!nd[i][0]) continue;
+        fprintf(stderr, "WRN: HDR(%d) TYPE(%02d) is ignored by the loader in 8080 model\n", i, nd[i][0]);
+        if (!GET16(nd[i] + 3) && GET16(nd[i] + 1)) {
+            fprintf(stderr, "WRN: HDR(%d) content would be loaded at segment 0\n", i);
+        }
+    }
+    if (code < 0) {
+        fprintf(stderr, "WRN: no CODE group in 8080 model (type 9 is not converted), CS would be 0\n");
+    } else if (GET16(nd[code] + 1) < 0x10) {
+        fprintf(stderr, "WRN: HDR(%d) CODE group is shorter than the 100h-byte base page of 8080 model\n", code);
+    }
+}
+
 #ifdef __STDC__
 void usage() {
 #else
@@ -139,7 +200,8 @@ usage() {
     fprintf(stderr, "     - modifies, creates (empty slot or new file) or deletes group <index> (0-7)\n");
     fprintf(stderr, "       of file.cmd in place; view the result with cmdinfo\n");
     fprintf(stderr, "     -s file.bin  replace the group content (padded to 16 bytes)\n");
-    fprintf(stderr, "     -t type      group type 1-9 (1=code 2=data 3=extra 4=stack 5-8=aux 9=shared code)\n");
+    fprintf(stderr, "     -t type      group type 1-9 or CODE(1) DATA(2) EXTRA(3) STACK(4) AUX1-AUX4(5-8)\n");
+    fprintf(stderr, "                  SHARED(9, shared code), as displayed by cmdinfo\n");
     fprintf(stderr, "                  default: unchanged, or index+1 for a new group\n");
     fprintf(stderr, "     -b basehex   base in hex paragraphs, 0=relocatable (default: unchanged, or 0)\n");
     fprintf(stderr, "     -n minhex    min size in hex bytes (default: unchanged, or length;\n");
@@ -184,9 +246,9 @@ int main_alt(argc, argv)
         if (strcmp(argv[1], "-s") == 0) {
             have_s = 1; srcname = argv[2];
         } else if (strcmp(argv[1], "-t") == 0) {
-            t = parsehex(argv[2]);
-            if (t < 1 || t > 9) {
-                fprintf(stderr, "ERR: -t value must be 1-9\n");
+            t = parsetype(argv[2]);
+            if (t < 1) {
+                fprintf(stderr, "ERR: -t value must be 1-9 or CODE, DATA, EXTRA, STACK, AUX1-AUX4, SHARED\n");
                 return 1;
             }
             have_t = 1;
@@ -362,6 +424,8 @@ int main_alt(argc, argv)
         PUT16(d + 7, max);
         action = newslot ? "CREATED" : "UPDATED";
     }
+
+    check_8080(nd);
 
     /* Build the temporary file name: replace the extension with .$$$ */
     strcpy(tmpname, name);
