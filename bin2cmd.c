@@ -59,6 +59,7 @@
 #endif
 
 unsigned char header[128];
+static unsigned char iobuf[512];
 
 /* Parse an unsigned hex string (no 0x prefix). Returns -1 on error. */
 #ifdef __STDC__
@@ -111,6 +112,10 @@ int main_alt(argc, argv)
 
     maxsize = 0;
     while (argc > 1 && argv[1][0] == '-') {
+        /* CP/M upper-cases the command line */
+        if (argv[1][1] >= 'A' && argv[1][1] <= 'Z' && !argv[1][2]) {
+            argv[1][1] += 'a' - 'A';
+        }
         if (strcmp(argv[1], "-n") == 0) {
             zeropage = 0;
             argc--; argv++;
@@ -137,22 +142,22 @@ int main_alt(argc, argv)
         usage();
         return 1;
     }
-    /* Open the input file, and seek to the end to get its size */
+    /* Open the input file, and count its size by reading it: ftell at the
+     * end is only a 128-byte record multiple on CP/M, which has no exact
+     * file length */
     fin = fopen(argv[1], BINARY_READ);
     if (!fin) {
         fprintf(stderr,"ERR: Can't open input '%s' (%d)\n",argv[1],errno);
         return 1;
     }
-    if (fseek(fin, 0L, SEEK_END) < 0) {
-        fclose(fin);
-        fprintf(stderr,"ERR: Can't seek to end of input (%d)\n",errno);
-        return 1;
+    pos = 0;
+    while ((c = fread(iobuf, 1, sizeof(iobuf), fin)) > 0) {
+        pos += c;
     }
-    /* Get size */
-    pos = ftell(fin);
     /* Seek back to the beginning */
-    if (pos < 0 || fseek(fin, 0L, SEEK_SET) < 0) {
-        fprintf(stderr,"ERR: Can't seek to beginning of input (%d)\n",errno);
+    if (ferror(fin) || fseek(fin, 0L, SEEK_SET) < 0) {
+        fclose(fin);
+        fprintf(stderr,"ERR: Can't read input (%d)\n",errno);
         return 1;
     }
 
@@ -200,7 +205,7 @@ int main_alt(argc, argv)
         fclose(fin);
         return 1;
     }
-    fprintf(stderr, "INF: header size(%ld)\n",sizeof(header));
+    fprintf(stderr, "INF: header size(%d)\n",(int)sizeof(header));
     /* Write CMD header */
     if (fwrite(header, 1, sizeof(header), fout) < sizeof(header)) {
         fprintf(stderr,"ERR: Can't write header to output (%d)\n",errno);

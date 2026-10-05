@@ -23,6 +23,23 @@ cmdinfo -e file.cmd
      - extracts extra segments (e<index>-<base>.bin)
 ```
 
+For a file without a DATA group, `cmdinfo` prints `MODEL(8080)` and warns (`WRN:`) about what the loader would ignore, see the loader notes below.
+
+## bin2cmd Usage
+
+```
+bin2cmd [-n] [-m maxhex] file.bin file.cmd
+     - converts a .COM/.BIN to a CP/M-86 .CMD file with one relocatable code group
+     -n         do not insert the 256-byte zero page (base page) after the header,
+                the input then provides it
+     -m maxhex  max segment size in hex bytes (0 = any, clamped to 10000h = 64K),
+                ignored if <= the code size
+```
+
+- By default the code group is preceded by a 256-byte zero page, so a program assembled with `org 100h` runs as 8080 model
+- The group min size is the code group length (including the zero page unless `-n`), and the file is padded to 512 bytes
+- To leave room after the image (for a stack, for example) use `-m`, or `cmdmod -n` on the result to raise the min size
+
 ## cmdmod Usage
 
 ```
@@ -50,7 +67,6 @@ cmdmod -d file.cmd index
 - Files with RSX or fixup records are refused, as is deleting the only group
 - Warns (`WRN:`) when the resulting file is 8080 model and has groups the loader ignores, see below
 - The file is rewritten through a temporary `.$$$` file, groups are padded to 16 bytes and the file to 512 bytes
-- `make test-cmdmod` and `make test-bin2cmd` run regression scenarios in `./cmdmod-test` and `./bin2cmd-test`, using `test.bin` (a masm "hello" for CP/M-86); the result is run with `emu2` when available (`EMU=` to override)
 
 ## exe2cmd Usage
 
@@ -169,6 +185,8 @@ A file is **8080 model** when none of its 8 descriptors has type 2 (DATA). Other
 | Type 9 (shared code) | not converted to code, CS would be 0 | converted to code |
 | Memory allocated | sum of all relocatable groups (max, or min if no max) | same |
 
+See [STACKS.md](https://github.com/tsupplis/cpm86-hacking/blob/main/STACKS.md) in cpm86-hacking for the stack patterns of 8080-model and other programs.
+
 The loader never sets SS:SP from a STACK group: the group is allocated and its base is recorded in the base page, the program has to load SS:SP itself.
 
 `cmdinfo` prints `MODEL(8080)` for such files, and both `cmdinfo` and `cmdmod` warn (`WRN:`) about:
@@ -176,6 +194,7 @@ The loader never sets SS:SP from a STACK group: the group is allocated and its b
 - relocatable groups with content, which would be loaded at segment 0
 - no CODE group (e.g. only type 9), so CS would be 0
 - a code group shorter than the 100h-byte base page
+- (`cmdmod` only) an 8080-model code group with no room beyond the image (min = length, no max): the stack must then be inside the image, or the min raised with `cmdmod -n`
 
 ## TODOs
 
@@ -183,6 +202,25 @@ The loader never sets SS:SP from a STACK group: the group is allocated and its b
 - Provide real DOS makefile
 - Regress test the submit script
 - Adjust exe2cmd to work with basic exes
+
+## Tests
+
+Native (build with `make`), each test works in its own directory (removed by `make clean`):
+
+| Target | Directory | Checks |
+|--------|-----------|--------|
+| `make test-cmdinfo` | `cmdinfo-test` | group types, base/min/max, 8080 model warnings, extraction, errors |
+| `make test-cmdmod` | `cmdmod-test` | create, resize, zero-size group, delete, round trip of `test.bin` |
+| `make test-bin2cmd` | `bin2cmd-test` | zero page, `-n`, `-m`, `test.bin` |
+
+- `test.bin` is a masm "hello" for CP/M-86. When `emu2` is available (`EMU=` to override) the converted files are run and their output is checked
+- Cross-built tools (Aztec C) are tested with `make -f Makefile.cpm86 test-emu2` and `make -f Makefile.dos test`: they run under `emu2` (which needs a terminal), and their output is compared with the native tools in `emu-test`
+
+## CP/M and DOS builds
+
+- CP/M has no exact file length, files are padded to whole 128-byte records: `bin2cmd` and `cmdmod -s` size a binary input by reading it, so its length is rounded up to 128 bytes
+- CP/M upper-cases the command line: options are accepted in lower or upper case (`-M 1000`)
+- Aztec C `printf` rounds sizes in `cmdinfo` such as `0.25K` up, the native one to even
 
 ## Build Environment
 

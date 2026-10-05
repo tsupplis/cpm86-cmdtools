@@ -9,6 +9,8 @@ TOOLS=cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT) exe2cmd$(BINEXT)
 
 all: $(TOOLS)
 
+include Makefile.emutest
+
 bin2cmd$(BINEXT): bin2cmd.o
 	$(LD) -o $@ $< $(LDFLAGS)
 
@@ -27,10 +29,7 @@ exe2cmd$(BINEXT): exe2cmd.o
 
 clean:
 	$(RM) *.o $(TOOLS)
+	$(RM) -r emu-test
 
-test: $(TOOLS)
-	emu2 ./cmdinfo.com t0.cmd
-	emu2 ./cmdinfo.com t1.cmd
-	emu2 ./cmdinfo.com t2.cmd
-	emu2 ./cmdinfo.com t3.cmd
+test: test-emu2
 

@@ -50,7 +50,6 @@
 #endif
 #else
 #define SEEK_SET 0
-#define SEEK_END 2
 #define BINARY_READ "r"
 #define BINARY_WRITE "w"
 #endif
@@ -161,7 +160,8 @@ int parsetype(s) char *s; {
  * descriptor gets a base; other relocatable groups keep base 0 and are not
  * recorded in the base page (content would be loaded at segment 0), type 9
  * is not turned into code, and CS=DS=ES with IP=0100h so the code group
- * starts with a 100h-byte base page (an EXTRA group does not set ES).
+ * starts with a 100h-byte base page (an EXTRA group does not set ES). The stack
+ * is not set either, so a program needs its stack inside the code group.
  */
 #ifdef __STDC__
 void check_8080(unsigned char nd[][DESC_SIZE]) {
@@ -186,6 +186,9 @@ check_8080(nd) unsigned char nd[][DESC_SIZE]; {
         fprintf(stderr, "WRN: no CODE group in 8080 model (type 9 is not converted), CS would be 0\n");
     } else if (GET16(nd[code] + 1) < 0x10) {
         fprintf(stderr, "WRN: HDR(%d) CODE group is shorter than the 100h-byte base page of 8080 model\n", code);
+    }
+    if (code >= 0 && !GET16(nd[code] + 7) && GET16(nd[code] + 5) <= GET16(nd[code] + 1)) {
+        fprintf(stderr, "WRN: 8080 model without room beyond the image (min=length, no max): the stack must be inside the image, or raise min with -n\n");
     }
 }
 
@@ -235,8 +238,13 @@ int main_alt(argc, argv)
     char *action;
     char *p, *dot;
     unsigned char *d;
+    unsigned rd;
 
     while (argc > 1 && argv[1][0] == '-') {
+        /* CP/M upper-cases the command line */
+        if (argv[1][1] >= 'A' && argv[1][1] <= 'Z' && !argv[1][2]) {
+            argv[1][1] += 'a' - 'A';
+        }
         if (strcmp(argv[1], "-d") == 0) {
             del = 1;
             argc--; argv++;
@@ -304,7 +312,8 @@ int main_alt(argc, argv)
     /* Load the existing header, or start from an empty one */
     fin = fopen(name, BINARY_READ);
     if (!fin) {
-#ifdef ENOENT
+#ifdef ATOMIC_RENAME
+        /* the CP/M and DOS libraries do not set a reliable errno */
         if (errno != ENOENT) {
             fprintf(stderr, "ERR: Can't open '%s' (%d)\n", name, errno);
             return 1;
@@ -375,8 +384,13 @@ int main_alt(argc, argv)
                 fprintf(stderr, "ERR: Can't open input '%s' (%d)\n", srcname, errno);
                 goto fail;
             }
-            if (fseek(fsrc, 0L, SEEK_END) < 0 || (srcsize = ftell(fsrc)) < 0
-                    || fseek(fsrc, 0L, SEEK_SET) < 0) {
+            /* Count by reading: ftell at the end is only a 128-byte record
+             * multiple on CP/M, which has no exact file length */
+            srcsize = 0;
+            while ((rd = (unsigned)fread(iobuf, 1, RECORD, fsrc)) > 0) {
+                srcsize += rd;
+            }
+            if (ferror(fsrc) || fseek(fsrc, 0L, SEEK_SET) < 0) {
                 fprintf(stderr, "ERR: Can't get size of input '%s' (%d)\n", srcname, errno);
                 goto fail;
             }

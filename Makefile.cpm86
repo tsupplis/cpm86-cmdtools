@@ -9,6 +9,8 @@ TOOLS=cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT) exe2cmd$(BINEXT)
 
 all: $(TOOLS)
 
+include Makefile.emutest
+
 bin2cmd$(BINEXT): bin2cmd.o
 	$(LD) -o $@ $< $(LDFLAGS)
 
@@ -27,6 +29,7 @@ exe2cmd$(BINEXT): exe2cmd.o
 
 clean:
 	$(RM) *.o $(TOOLS) cpmtest.img
+	$(RM) -r emu-test
 
 cpmtest.img: $(TOOLS) Makefile 
 	cp base.img cpmtest.img

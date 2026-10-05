@@ -1,0 +1,42 @@
+# Included by Makefile.cpm86 and Makefile.dos
+#
+# test-emu2 runs the cross-built tools under emu2 and compares what they
+# produce with the native tools (built with ./Makefile). It needs a terminal
+# for emu2, and the native toolchain. cmdinfo sizes in K are compared without
+# their decimals: the Aztec printf rounds 0.25 up, the native one to even.
+#
+# The inputs are a multiple of 128 bytes: CP/M has no exact file length,
+# so a file is always padded to whole records.
+
+EMU2=emu2
+EMUDIR=emu-test
+
+test-emu2: $(TOOLS)
+	$(MAKE) -f Makefile cmdinfo cmdmod bin2cmd
+	$(RM) -r $(EMUDIR) && mkdir $(EMUDIR) $(EMUDIR)/ex
+	head -c 256 bin2cmd.c > $(EMUDIR)/s.bin
+	head -c 512 cmdmod.c > $(EMUDIR)/r.bin
+	cp cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT) $(EMUDIR)/
+	cd $(EMUDIR) && set -e; \
+	conv() { $(EMU2) ./bin2cmd$(BINEXT) "$$@" x.cmd; ../bin2cmd "$$@" n.cmd 2>/dev/null; cmp x.cmd n.cmd; }; \
+	mod() { i=$$1; shift; $(EMU2) ./cmdmod$(BINEXT) "$$@" x.cmd $$i; ../cmdmod "$$@" n.cmd $$i 2>/dev/null; cmp x.cmd n.cmd; }; \
+	norm() { tr -d '\r' | tr a-z A-Z | sed 's/[0-9]*\.[0-9]K=/K=/' | grep -v '^$$' | sort; }; \
+	info() { $(EMU2) ./cmdinfo$(BINEXT) "$$@" 2>&1 | norm > c.txt; \
+	         ../cmdinfo "$$@" 2>&1 | norm > n.txt; cmp c.txt n.txt; }; \
+	conv s.bin; \
+	conv -n s.bin; \
+	conv -M 1000 s.bin; \
+	rm -f x.cmd n.cmd; \
+	mod 0 -s r.bin; \
+	mod 1 -T DATA -s s.bin -b 40; \
+	mod 2 -t STACK -n 400; \
+	mod 3 -t aux1 -n 10 -m 20; \
+	mod 0 -m 1000; \
+	mod 0 -n 0 -s s.bin; \
+	mod 1 -d; \
+	info x.cmd; \
+	$(EMU2) ./cmdinfo$(BINEXT) -e x.cmd; mv c*.bin d*.bin e*.bin ex/ 2>/dev/null || true; \
+	../cmdinfo -e n.cmd > /dev/null; \
+	test -n "`ls c*.bin 2>/dev/null`"; \
+	for f in `ls c*.bin d*.bin e*.bin 2>/dev/null`; do n=`wc -c < $$f`; head -c $$n ex/$$f | cmp - $$f; done; \
+	cmp x.cmd n.cmd

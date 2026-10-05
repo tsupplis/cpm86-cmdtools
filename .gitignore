@@ -27,3 +27,5 @@ exe2cmd
 **/.vscode
 cmdmod-test
 bin2cmd-test
+cmdinfo-test
+emu-test
