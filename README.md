@@ -13,13 +13,22 @@ bin2cmd and exe2cmd originate from John Elliot Code...
 ## cmdinfo Usage
 
 ```
-cmdinfo file.cmd [...]
+INF: cmdinfo file.cmd [...]
      - displays CMD headers
-
-cmdinfo -e file.cmd
-     - extracts code segments  (c<index>-<base>.bin)
-     - extracts data segments  (d<index>-<base>.bin)
+     cmdinfo -e file.cmd
+     - extracts code segments (c<index>-<base>.bin)
+     - extracts data segments (d<index>-<base>.bin)
      - extracts extra segments (e<index>-<base>.bin)
+```
+
+## bin2cmd Usage
+
+```
+INF: bin2cmd [-n] [-m maxhex] file.bin file.cmd
+     - converts a .COM/.BIN to a CP/M-86 .CMD file
+     -n         do not insert a 256-byte zero page after the header
+     -m maxhex  max segment size in hex bytes (0=any, clamped to 10000h=64K)
+                ignored if <= code size
 ```
 
 ## TODOs
