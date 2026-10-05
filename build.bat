@@ -1,6 +1,9 @@
 cc -D__MSDOS__ cmdinfo.c
 sqz cmdinfo.o
 ln -o cmdinfo.com cmdinfo.o -lm -lc
+cc -D__MSDOS__ cmdmod.c
+sqz cmdmod.o
+ln -o cmdmod.com cmdmod.o -lm -lc
 cc -D__MSDOS__ bin2cmd.c
 sqz bin2cmd.o
 ln -o bin2cmd.com bin2cmd.o -lm -lc

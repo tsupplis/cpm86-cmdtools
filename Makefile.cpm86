@@ -5,7 +5,7 @@ LDFLAGS=-lm -lc86
 LD=aztec34_link
 BINEXT=.cmd
 
-TOOLS=cmdinfo$(BINEXT) bin2cmd$(BINEXT) exe2cmd$(BINEXT)
+TOOLS=cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT) exe2cmd$(BINEXT)
 
 all: $(TOOLS)
 
@@ -13,6 +13,9 @@ bin2cmd$(BINEXT): bin2cmd.o
 	$(LD) -o $@ $< $(LDFLAGS)
 
 cmdinfo$(BINEXT): cmdinfo.o
+	$(LD) -o $@ $< $(LDFLAGS)
+
+cmdmod$(BINEXT): cmdmod.o
 	$(LD) -o $@ $< $(LDFLAGS)
 
 exe2cmd$(BINEXT): exe2cmd.o

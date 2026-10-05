@@ -26,6 +26,8 @@
  *      384+N   P      Paragraph padding: P = (16 - (pos % 16)) % 16
  *      end     Q      512-byte record padding: Q = (512 - (total % 512)) % 512
  *
+ *    With -n the zero page is not inserted and not counted in the group size.
+ *
  *    Examples (with zero page):
  *      pos= 57: paras=20, rest= 7, total=448, pad= 64 -> file=  512 bytes (1 record)
  *      pos=110: paras=23, rest= 2, total=496, pad= 16 -> file=  512 bytes (1 record)
@@ -155,8 +157,9 @@ int main_alt(argc, argv)
     }
 
     /* Calculate size in paragraphs. Add 16 paragraphs for the
-     * Zero Page (written separately, not counted in rest). */
-    paras = (pos + 15) / 16 + 0x10;
+     * Zero Page (written separately, not counted in rest), unless
+     * -n was given: the input then already provides it. */
+    paras = (pos + 15) / 16 + (zeropage ? 0x10 : 0);
     rest = (16 - (pos % 16)) % 16;
 
     /* The CP/M-86 CMD format does not allow groups larger than 1M */

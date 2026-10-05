@@ -16,6 +16,7 @@ test
 **/*.exe
 bin2cmd
 cmdinfo
+cmdmod
 exe2cmd
 **/.*.swp
 **/*.obj
@@ -24,3 +25,5 @@ exe2cmd
 **/*.sym
 **/*.lst
 **/.vscode
+cmdmod-test
+bin2cmd-test

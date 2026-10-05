@@ -5,6 +5,7 @@
 Simple tools collected to faciliate the cross development of executables running on CP/M-86
 
 - `cmdinfo` Details the structure of a .CMD file and can extract CODE, DATA and EXTRA segments
+- `cmdmod` Creates, modifies or deletes a segment (group) of a .CMD file in place
 - `bin2cmd` Converts a .COM/.BIN file (DOS .COM binary) to a .CMD
 - `exe2cmd` Converts a .EXE file (DOS .EXE binary) to a .CMD (Small Model)
 
@@ -21,6 +22,134 @@ cmdinfo -e file.cmd
      - extracts data segments  (d<index>-<base>.bin)
      - extracts extra segments (e<index>-<base>.bin)
 ```
+
+## cmdmod Usage
+
+```
+cmdmod [-s file.bin] [-t type] [-b basehex] [-n minhex] [-m maxhex] file.cmd index
+     - modifies, creates or deletes group <index> (0-7) of file.cmd in place
+     - <index> is the HDR(index) shown by cmdinfo
+     - view the result with cmdinfo
+
+cmdmod -d file.cmd index
+     - deletes the group, later groups move down one index
+```
+
+| Option | Description | Default (existing group) | Default (new group) |
+|--------|-------------|--------------------------|---------------------|
+| `-s file.bin` | Replace the group content, padded to 16 bytes | unchanged | length 0 |
+| `-t type` | Type 1-9 (1 code, 2 data, 3 extra, 4 stack, 5-8 aux, 9 shared code) | unchanged | index+1 |
+| `-b basehex` | Base in hex paragraphs, 0 = relocatable | unchanged | 0 |
+| `-n minhex` | Min size in hex bytes (`-n 0` resets it to the group length) | unchanged | group length |
+| `-m maxhex` | Max size in hex bytes, 0 = no constraint, clamped to 10000h | unchanged | 0 |
+| `-d` | Delete the group (cannot be combined with other options) | | |
+
+- A missing file is created (index must be 0), if the options define a valid group
+- A new group without `-s` has length 0 and needs `-n`, e.g. `cmdmod -t 4 -n 400 prog.cmd 3` adds a 1K stack group with no content
+- The min size is raised to the group length when smaller (warning if given with `-n`); an explicit max smaller than the length or min is an error
+- Files with RSX or fixup records are refused, as is deleting the only group
+- The file is rewritten through a temporary `.$$$` file, groups are padded to 16 bytes and the file to 512 bytes
+- `make test-cmdmod` runs a regression scenario in `./cmdmod-test` (and `make test-bin2cmd` one for bin2cmd in `./bin2cmd-test`)
+
+## exe2cmd Usage
+
+```
+exe2cmd file.exe file.cmd [base=hex]
+     - converts a DOS .EXE to a CP/M-86 .CMD
+     - generates a code group (type 1) and a data group (type 2),
+       both relocatable (base 0), the data group being a fixed 0F0h paragraphs
+     - base=hex  hex paragraph value added to the segment fixups applied
+                 to the data group (default 60)
+```
+
+Current limitations (see TODOs):
+
+- Only accepts CP/M-86 BDOS-style images (32 header paragraphs, first relocation at address 6 or less); other .EXE files are rejected with `ERR: <file> is not a BDOS image`
+- Output is padded to a 128-byte record boundary
+- Progress and header details are reported on stderr (`INF:` lines)
+
+## CP/M-86 executable format (.CMD)
+
+> Source: this section summarises the CP/M-86 `.CMD` format description at <https://www.seasip.info/Cpm/cmdfile.html>.
+
+The `.CMD` file is the general executable format of CP/M-86 and its derivatives. Besides standalone programs, it is also used for system files (e.g. DOS Plus `DOSPLUS.SYS`) and GSX-86 drivers (CP/M and DOS).
+
+| Extension | Usage |
+|-----------|-------|
+| `.CMD` | Standalone program (usual file type) |
+| `.STM` | Speedstart CP/M (cut-down, embedded CP/M-86); first group is obfuscated |
+
+### Layout
+
+| Part | Location | Description |
+|------|----------|-------------|
+| Header | Offset 0, 128 bytes | 8 group descriptors, then optional RSX/fixup/flags fields |
+| Groups | After the header | Group data, in descriptor order |
+| Fixups | Next 128-byte boundary | Sequence of 4-byte fixup records (optional) |
+| RSX index | Record given by header offset 7Bh | 16-byte entries (optional) |
+
+The first byte of a CMD file is always 1-9 (1 is by far the most common). A `.CMD` file starting with any other byte is most likely a Windows NT script.
+
+### Header
+
+| Offset | Size | Field | Notes |
+|--------|------|-------|-------|
+| 0 | 72 bytes | 8 group descriptors | 9 bytes each, see below |
+| 7Bh | DW | RSX index record | 0 if no RSX index (not in CP/M-86 1.x) |
+| 7Dh | DW | 1st record with fixups | 0 if no fixups (not in CP/M-86 1.x) |
+| 7Fh | DB | Flags | See below (not in CP/M-86 1.x) |
+
+### Group descriptor (9 bytes)
+
+| Field | Size | Description |
+|-------|------|-------------|
+| type | DB | Group type, see below |
+| length | DW | Length in paragraphs |
+| base | DW | Base in paragraphs; 0 if relocatable (normally nonzero only in OS files: `DOSPLUS.SYS`, `PCPM.SYS`, `CPM.SYS`) |
+| minimum size | DW | In paragraphs |
+| maximum size | DW | In paragraphs |
+
+| Type | Group |
+|------|-------|
+| 1 | Code |
+| 2 | Data |
+| 3 | Extra |
+| 4 | Stack |
+| 5-8 | Aux1 - Aux4 |
+| 9 | "Pure" code (shareable between processes) |
+
+### Flags (offset 7Fh)
+
+| Bit | Meaning |
+|-----|---------|
+| 4 | File is an RSX, not a CMD file |
+| 5 | Allocate the 8087 to the program, only if one is present |
+| 6 | Allocate the 8087 to the program, even if absent (imaginary resource) |
+| 7 | Do segment fixups |
+
+### Fixup record (4 bytes)
+
+| Field | Size | Description |
+|-------|------|-------------|
+| `xyH` | DB | x = source group (1-8), y = destination group (1-8) |
+| segment offset | DW | Offset to add to the source segment register |
+| offset | DB | Offset to add to the source offset (0-15) |
+
+The loader adds the destination group segment address to the word specified. CP/M-86 1.1 does not support fixups; a separate program (`R.CMD` or `RUN.CMD`) loads such files.
+
+### RSX index entry (16 bytes)
+
+| Field | Size | Description |
+|-------|------|-------------|
+| offset | DW | Offset of RSX from the end of the CMD header, in 128-byte records minus 1. `0000h`: dynamically linked, loaded from disc; `0FFFFh`: end of list |
+| name | 8 bytes | RSX name (`'RSXNAME '`); filename on disc if dynamically linked |
+| unused | 3 x DW | Unused |
+
+`GENRSX` allows at most 7 RSXs per file (one 128-byte record, leaving room for the `0FFFFh` terminator).
+
+### STM obfuscation
+
+In `.STM` files (SpeedStart CP/M-86), the first group (usually code) has every word XORed with `0xA5B4`: even-numbered bytes with `0xB4`, odd-numbered bytes with `0xA5`.
 
 ## TODOs
 
