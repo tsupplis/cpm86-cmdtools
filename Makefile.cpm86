@@ -1,15 +1,13 @@
-CC=aztec34_cc
+CC=aztec42_cc
 CFLAGS=-D__CPM86__ 
-STRIP=aztec34_sqz
+STRIP=aztec42_sqz
 LDFLAGS=-lm -lc86
-LD=aztec34_link
+LD=aztec42_link
 BINEXT=.cmd
 
 TOOLS=cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT) exe2cmd$(BINEXT)
 
 all: $(TOOLS)
-
-include Makefile.emutest
 
 bin2cmd$(BINEXT): bin2cmd.o
 	$(LD) -o $@ $< $(LDFLAGS)
@@ -28,7 +26,7 @@ exe2cmd$(BINEXT): exe2cmd.o
 	$(STRIP) $@
 
 clean:
-	$(RM) *.o $(TOOLS) cpmtest.img
+	$(RM) *.o $(TOOLS) cpmtest.img cpm86-cmdtools.zip
 	$(RM) -r emu-test
 
 cpmtest.img: $(TOOLS) Makefile 
@@ -36,9 +34,21 @@ cpmtest.img: $(TOOLS) Makefile
 	cpmcp -f ibmpc-514ss cpmtest.img *.cmd 0:
 	cpmls -F -f ibmpc-514ss cpmtest.img 0:*.*
 
+# --------------------------------------------------------------------
+# Binary zip
+# --------------------------------------------------------------------
+dist: cpm86-cmdtools.zip
+
+cpm86-cmdtools.zip: $(TOOLS)
+	rm -f cpm86-cmdtools.zip
+	zip -j cpm86-cmdtools.zip $^
+
+
 cpm86.img:
 	[ ! -f cpm86.img ] && wget https://github.com/tsupplis/cpm86-kernel/releases/download/v1.1-03-01/cpm86-1.img
 	[ ! -f cpm86.img ] && mv cpm86-1.img cpm86.img
 
 test: cpmtest.img cpm86.img
 	./cpm86
+
+include Makefile.emutest

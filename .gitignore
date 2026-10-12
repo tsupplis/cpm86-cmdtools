@@ -1,4 +1,5 @@
 rom
+**/*.zip
 **/*.lock
 test
 **/cpm86
