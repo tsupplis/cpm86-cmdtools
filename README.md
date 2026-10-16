@@ -148,6 +148,14 @@ The first byte of a CMD file is always 1-9 (1 is by far the most common). A `.CM
 | minimum size | DW | In paragraphs |
 | maximum size | DW | In paragraphs |
 
+The maximum memory size, is generally used when additional free memory may be needed for such purposes as I/O 
+buffers or symbol tables.  If the data area size is fixed, then the maximum memory need not be included. 
+In this case, the maximum memory is assumed to be the same as the minimum memory. The value FFFF allocates the
+largest memory region available but, if used, the transient program must be aware that a three-byte length field is
+produced in the base page for this group where the high order byte may be non-zero. Programs converted directly
+from CP/M-80 or programs that use a 2-byte pointer to address buffers should restrict this value to FFF or less,  
+producing a maximum allocation length of OFFFOH bytes.
+
 | Type | Group |
 |------|-------|
 | 1 | Code |
@@ -196,6 +204,10 @@ Reference: `bdos.a86` (function 59, load program) and `ccp.a86` of [cpm86-kernel
 
 A file is **8080 model** when none of its 8 descriptors has type 2 (DATA). Otherwise it is not.
 
+The 8080 keyword is included whenever ASM-86 is used in the conversion of 8080 programs to the 8086/8088
+environment when code and data are intermixed within a single 64K segment, regardless of the use of CSEG and
+DSEG directives in the source program.
+
 | | 8080 model (no DATA group) | With a DATA group |
 |---|---|---|
 | CS:IP | code base : `0100h` | code base : `0` |
@@ -207,8 +219,7 @@ A file is **8080 model** when none of its 8 descriptors has type 2 (DATA). Other
 | Type 9 (shared code) | not converted to code, CS would be 0 | converted to code |
 | Memory allocated | sum of all relocatable groups (max, or min if no max) | same |
 
-See [STACKS.md](https://github.com/tsupplis/cpm86-hacking/blob/main/STACKS.md) in cpm86-hacking for the stack patterns of 8080-model and other programs.
-
+more info on segment programing at (Segment Patterns)[https://github.com/tsupplis/cpm86-crossdev/blob/main/docs/asm/asm-tutorial.md#3-segment-patterns].
 The loader never sets SS:SP from a STACK group: the group is allocated and its base is recorded in the base page, the program has to load SS:SP itself.
 
 `cmdinfo` prints `MODEL(8080)` for such files, and both `cmdinfo` and `cmdmod` warn (`WRN:`) about:
@@ -217,13 +228,6 @@ The loader never sets SS:SP from a STACK group: the group is allocated and its b
 - no CODE group (e.g. only type 9), so CS would be 0
 - a code group shorter than the 100h-byte base page
 - (`cmdmod` only) an 8080-model code group with no room beyond the image (min = length, no max): the stack must then be inside the image, or the min raised with `cmdmod -n`
-
-## TODOs
-
-- Examples with MASM, RASM86, MS LINK, DR LINKEXE
-- Provide real DOS makefile
-- Regress test the submit script
-- Adjust exe2cmd to work with basic exes
 
 ## Tests
 
