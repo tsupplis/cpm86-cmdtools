@@ -79,11 +79,33 @@ exe2cmd file.exe file.cmd [base=hex]
                  to the data group (default 60)
 ```
 
-Current limitations (see TODOs):
+### exe2cmd Limitations
 
-- Only accepts CP/M-86 BDOS-style images (32 header paragraphs, first relocation at address 6 or less); other .EXE files are rejected with `ERR: <file> is not a BDOS image`
-- Output is padded to a 128-byte record boundary
-- Progress and header details are reported on stderr (`INF:` lines)
+`exe2cmd` is purposely narrow: it was written to convert one specific binary (the Personal CP/M-86 BDOS compiled as a small-model EXE) and has never been generalised.
+
+**Input constraints**
+
+| Constraint | Detail |
+|---|---|
+| BDOS fingerprint required | The EXE header must have exactly **32 header paragraphs** (`peek(8) == 32`) and the first relocation entry must sit at or before offset 6 (`peek(32) <= 6`). Every other EXE is rejected with `ERR: <file> is not a BDOS image`. |
+| EXE header buffer is 520 bytes | Only the first 520 bytes (`0x208`) of the EXE are loaded into `exe_header[]`. Relocation tables beyond that window are silently ignored. |
+| At most 8 relocation entries processed | The fixup loop (line ~204) iterates exactly 8 times, patching segment words at hard-coded positions inside the data group. It does **not** walk the EXE relocation table; all other relocations are left un-patched. Slot 6 is skipped unconditionally (reserved for the DOS module address). |
+
+**Output constraints**
+
+| Constraint | Detail |
+|---|---|
+| Fixed data segment size | `DS_LEN` is hard-coded to `0xF0` paragraphs (3840 bytes). The EXE's own `minalloc`/`maxalloc` fields are ignored; the commented-out general logic was never enabled. |
+| Two groups only | Exactly one Code group (type 1) and one Data group (type 2) are emitted. No Stack, Extra or Aux groups are generated regardless of what the EXE image contains. |
+| Hard-coded `base=` default | The paragraph offset added to every intra-DS fixup defaults to `0x60`, which is the CP/M-86 BDOS load address. Passing a different `base=` value is necessary for any other target. |
+| Padded to 128-byte record boundary | The output `.CMD` is zero-padded to the next 128-byte boundary, not to a full 512-byte sector. |
+| No write-error reporting in `mvbytes` | Errors during the byte-copy phase are silently dropped (noted as `TODO` in the source). |
+
+**Diagnostic output**
+
+All progress (`INF:`) and error (`ERR:`) messages go to **stderr**. The tool produces no output on stdout.
+
+**Summary**: `exe2cmd` cannot be used as a general-purpose EXE-to-CMD converter. Adapting it for arbitrary small-model EXEs would require at minimum: removing the BDOS fingerprint check, replacing the hard-coded data-segment size with values derived from the EXE header, and replacing the fixed 8-entry fixup loop with a proper walk of the EXE relocation table.
 
 ## CP/M-86 executable format (.CMD)
 

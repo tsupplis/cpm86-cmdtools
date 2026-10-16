@@ -28,6 +28,10 @@
 
 #define DS_LEN 0xF0	/* Length of data segment (paras) */
 
+#if (DS_LEN * 16) < 72
+#error DS_LEN too small: dsbytes - 72 would underflow
+#endif
+
 int gl_base = 0x60;
 
 /* EXE header (plus first 8 bytes of EXE file) */
@@ -77,14 +81,13 @@ addgroup(type, paras, base, minparas, maxparas)
 			type, paras, base, minparas, maxparas);
 }
 
-/* Copy bytes from one file to another. 
- * TODO: Warn if error. */
+/* Copy bytes from one file to another. */
 #ifdef __STDC__
-void mvbytes(FILE *fpexe, FILE *fpcmd, long count) 
+void mvbytes(FILE *fpexe, FILE *fpcmd, long count)
 #else
-mvbytes(fpexe,fpcmd,count) 
-    FILE *fpexe; 
-    FILE *fpcmd; 
+mvbytes(fpexe,fpcmd,count)
+    FILE *fpexe;
+    FILE *fpcmd;
     long count;
 #endif
 {
@@ -93,6 +96,11 @@ mvbytes(fpexe,fpcmd,count)
 	while (count)
 	{
 		c = fgetc(fpexe);
+		if (c == EOF)
+		{
+			fprintf(stderr, "WRN: Unexpected end of input; output will be truncated\n");
+			return;
+		}
 		fputc(c, fpcmd);
 		--count;
 	}
@@ -141,24 +149,25 @@ int main_alt(argc, argv)
 		fprintf(stderr,"ERR: Can't open input '%s' (%d)\n",argv[1],errno);
 		return 1;
 	} 
-	if (fread(exe_header, 1, sizeof(exe_header), fpexe) < (int)sizeof(exe_header) 
+	if (fread(exe_header, 1, sizeof(exe_header), fpexe) < (int)sizeof(exe_header)
 	/* Check for CP/M-86 BDOS:
+	 *   MZ signature
 	 *   32 header paragraphs
 	 *   First relocation is at address 6 or less */
-	|| peek(8) != 32 || peek(32) > 6)
+	|| peek(0) != 0x5A4D || peek(8) != 32 || peek(32) > 6)
 	{
 		fprintf(stderr, "ERR: %s is not a BDOS image\n", argv[1]);
 		fclose(fpexe);
-		return 1; 
+		return 1;
 	}
-    fprintf(stderr,"INF: Signature      = %x\n",peek(0));
-    fprintf(stderr,"INF: Reloc Entries  = %d\n",peek(6));
+	fprintf(stderr,"INF: Signature      = %x\n",peek(0));
+	fprintf(stderr,"INF: Reloc Entries  = %d\n",peek(6));
 	cseg = 0;
 	dseg = peek(0x206);
 	sseg = peek(14);
 	exelen = 512L * peek(4);
-	if (peek(2)) 
-        exelen -= (512 - peek(2));
+	if (peek(2))
+		exelen -= (512 - peek(2));
 	exeparas = (exelen + 15) >> 4;
 /*
 	dstop = exeparas - peek(8);
@@ -175,6 +184,17 @@ int main_alt(argc, argv)
 	fprintf(stderr, "INF: DS top         = %04x\n", dstop);
 	fprintf(stderr, "INF: CS: %04x length %04x\n", cseg, dseg  - cseg);
 	fprintf(stderr, "INF: DS: %04x length %04x\n", dseg, dstop - dseg);
+	if (dseg == 0)
+	{
+		fprintf(stderr, "ERR: CS:6 word is zero; cannot determine code segment length\n");
+		fclose(fpexe);
+		return 1;
+	}
+	if (exeparas < dstop)
+	{
+		fprintf(stderr, "WRN: EXE image (%04x paras) shorter than expected dstop (%04x); output will contain 0xFF bytes\n",
+				exeparas, dstop);
+	}
 
 	/* Now generate CP/M-86 header. */
 	addgroup(1, dseg  - cseg, 0, dseg - cseg, 0);
