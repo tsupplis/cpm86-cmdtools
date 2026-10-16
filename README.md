@@ -185,8 +185,7 @@ A file is **8080 model** when none of its 8 descriptors has type 2 (DATA). Other
 | Type 9 (shared code) | not converted to code, CS would be 0 | converted to code |
 | Memory allocated | sum of all relocatable groups (max, or min if no max) | same |
 
-See [STACKS.md](https://github.com/tsupplis/cpm86-hacking/blob/main/STACKS.md) in cpm86-hacking for the stack patterns of 8080-model and other programs.
-
+more info on segment programing at (Segment Patterns)[https://github.com/tsupplis/cpm86-crossdev/blob/main/docs/asm/asm-tutorial.md#3-segment-patterns].
 The loader never sets SS:SP from a STACK group: the group is allocated and its base is recorded in the base page, the program has to load SS:SP itself.
 
 `cmdinfo` prints `MODEL(8080)` for such files, and both `cmdinfo` and `cmdmod` warn (`WRN:`) about:
@@ -195,13 +194,6 @@ The loader never sets SS:SP from a STACK group: the group is allocated and its b
 - no CODE group (e.g. only type 9), so CS would be 0
 - a code group shorter than the 100h-byte base page
 - (`cmdmod` only) an 8080-model code group with no room beyond the image (min = length, no max): the stack must then be inside the image, or the min raised with `cmdmod -n`
-
-## TODOs
-
-- Examples with MASM, RASM86, MS LINK, DR LINKEXE
-- Provide real DOS makefile
-- Regress test the submit script
-- Adjust exe2cmd to work with basic exes
 
 ## Tests
 
