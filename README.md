@@ -126,6 +126,14 @@ The first byte of a CMD file is always 1-9 (1 is by far the most common). A `.CM
 | minimum size | DW | In paragraphs |
 | maximum size | DW | In paragraphs |
 
+The maximum memory size, is generally used when additional free memory may be needed for such purposes as I/O 
+buffers or symbol tables.  If the data area size is fixed, then the maximum memory need not be included. 
+In this case, the maximum memory is assumed to be the same as the minimum memory. The value FFFF allocates the
+largest memory region available but, if used, the transient program must be aware that a three-byte length field is
+produced in the base page for this group where the high order byte may be non-zero. Programs converted directly
+from CP/M-80 or programs that use a 2-byte pointer to address buffers should restrict this value to FFF or less,  
+producing a maximum allocation length of OFFFOH bytes.
+
 | Type | Group |
 |------|-------|
 | 1 | Code |
@@ -173,6 +181,10 @@ In `.STM` files (SpeedStart CP/M-86), the first group (usually code) has every w
 Reference: `bdos.a86` (function 59, load program) and `ccp.a86` of [cpm86-kernel](https://github.com/tsupplis/cpm86-kernel).
 
 A file is **8080 model** when none of its 8 descriptors has type 2 (DATA). Otherwise it is not.
+
+The 8080 keyword is included whenever ASM-86 is used in the conversion of 8080 programs to the 8086/8088
+environment when code and data are intermixed within a single 64K segment, regardless of the use of CSEG and
+DSEG directives in the source program.
 
 | | 8080 model (no DATA group) | With a DATA group |
 |---|---|---|
