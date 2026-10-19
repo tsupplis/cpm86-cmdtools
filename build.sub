@@ -10,3 +10,6 @@ ln -o bin2cmd.cmd bin2cmd.o p:m.lib p:c.lib
 cc -D__CPM86__ -ip: exe2cmd.c
 sqz exe2cmd.o
 ln -o exe2cmd.cmd exe2cmd.o p:m.lib p:c.lib
+cc -D__CPM86__ -ip: h862bin.c
+sqz h862bin.o
+ln -o h862bin.cmd h862bin.o p:m.lib p:c.lib

@@ -30,3 +30,6 @@ cmdmod-test
 bin2cmd-test
 cmdinfo-test
 emu-test
+
+h862bin
+h862bin-test

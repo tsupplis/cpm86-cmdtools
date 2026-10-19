@@ -5,9 +5,12 @@ LDFLAGS=-lm -lc86
 LD=aztec42_link
 BINEXT=.cmd
 
-TOOLS=cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT) exe2cmd$(BINEXT)
+TOOLS=h862bin$(BINEXT) cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT) exe2cmd$(BINEXT)
 
 all: $(TOOLS)
+
+h862bin$(BINEXT): h862bin.o
+	$(LD) -o $@ $< $(LDFLAGS)
 
 bin2cmd$(BINEXT): bin2cmd.o
 	$(LD) -o $@ $< $(LDFLAGS)

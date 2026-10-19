@@ -5,9 +5,12 @@ LDFLAGS=-lm -lc
 LD=aztec34_link
 BINEXT=.com
 
-TOOLS=cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT) exe2cmd$(BINEXT)
+TOOLS=h862bin$(BINEXT) cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT) exe2cmd$(BINEXT)
 
 all: $(TOOLS)
+
+h862bin$(BINEXT): h862bin.o
+	$(LD) -o $@ $< $(LDFLAGS)
 
 include Makefile.emutest
 

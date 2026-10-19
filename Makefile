@@ -8,9 +8,13 @@ EMU=emu2
 # Runs a CMD with the emulator, checking the output of test.bin (skipped if absent)
 RUNHELLO=if command -v $(EMU) >/dev/null; then $(EMU) $(1) | grep -q 'Hello from assembler'; else echo "WRN: $(EMU) not found, run skipped"; fi
 
-TOOLS=cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT)  exe2cmd$(BINEXT) 
+TOOLS=h862bin$(BINEXT) cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT)  exe2cmd$(BINEXT)
 
 all: $(TOOLS)
+
+h862bin$(BINEXT): h862bin.c
+	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
+	$(STRIP) $@
 
 bin2cmd$(BINEXT): bin2cmd.c
 	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
@@ -32,7 +36,7 @@ exe2cmd$(BINEXT): exe2cmd.c
 # incompatible *.o files in this directory
 clean:
 	$(RM) $(TOOLS)
-	$(RM) -r cmdinfo-test cmdmod-test bin2cmd-test
+	$(RM) -r cmdinfo-test cmdmod-test bin2cmd-test h862bin-test
 
 # Exercises cmdinfo (all group types, base/min/max, 8080 model warnings, extraction, errors) in ./cmdinfo-test
 test-cmdinfo: cmdinfo cmdmod bin2cmd
@@ -148,3 +152,42 @@ test-bin2cmd: bin2cmd cmdinfo
 	../bin2cmd -m 1000 ../test.bin hello-m.cmd; \
 	$(call RUNHELLO,hello-m.cmd); \
 	if ../bin2cmd a.bin 2>/dev/null; then exit 1; fi
+
+# Intel HEX and ASM-86 H86, validation failures and the full 16-bit range.
+.PHONY: test-h862bin
+test-h862bin: h862bin
+	$(RM) -r h862bin-test && mkdir h862bin-test
+	cd h862bin-test && set -e; \
+	printf ':04010000DEADBEEFC3\n:00000001FF\n' > intel.hex; \
+	printf '\336\255\276\357' > expected.bin; \
+	../h862bin intel.hex intel.bin > stdout.txt 2>log.txt; \
+	cmp intel.bin expected.bin; test ! -s stdout.txt; \
+	grep -q 'INF: FILE(intel.hex) ORIGIN(0100) SIZE(4)' log.txt; \
+	printf ':010103840473\n:010101820279\n:01010081017C\n:010102830376\n:0400000300000100F8\n:00000001FF\n\032garbage' > asm.hex; \
+	printf '\001\002\003\004' > expected.bin; \
+	../h862bin asm.hex asm.bin; cmp asm.bin expected.bin; \
+	printf ':01FFFF000100\n:00000001FF\n' > last.hex; \
+	../h862bin last.hex last.bin; test `wc -c < last.bin` -eq 1; \
+	printf ':04010000DEADBEEFC2\n:00000001FF\n' > checksum.hex; \
+	printf ':04010000DEADBEEFC3\n' > noeof.hex; \
+	printf ':00000001FF\n' > empty.hex; \
+	printf ':0101000001FD\n:0101020003F9\n:00000001FF\n' > hole.hex; \
+	printf ':0101000001FD\n:0101000001FD\n:00000001FF\n' > overlap.hex; \
+	printf ':02FFFF000102FD\n:00000001FF\n' > overflow.hex; \
+	printf ':020000040000FA\n:00000001FF\n' > unsupported.hex; \
+	printf ':04010000DEAD00\n:00000001FF\n' > length.hex; \
+	printf ':04010000DEADXXEFC3\n:00000001FF\n' > nonhex.hex; \
+	printf 'not a record\n' > invalid.hex; \
+	for bad in checksum noeof empty hole overlap overflow unsupported length nonhex invalid; do \
+	  printf sentinel > keep.bin; \
+	  if ../h862bin $$bad.hex keep.bin > stdout.txt 2>err.txt; then exit 1; fi; \
+	  grep -q '^ERR:' err.txt; test ! -s stdout.txt; \
+	  printf sentinel | cmp - keep.bin; \
+	done; \
+	if ../h862bin intel.hex intel.hex 2>err.txt; then exit 1; fi; \
+	if ../h862bin missing.hex missing.bin 2>err.txt; then exit 1; fi; \
+	if ../h862bin intel.hex nowhere/out.bin 2>err.txt; then exit 1; fi; \
+	if ../h862bin 2>err.txt; then exit 1; fi
+	awk 'BEGIN { for (a=0; a<65536; a+=128) { printf ":80%04X00",a; s=128+int(a/256)+a%256; for (j=0;j<128;j++) { printf "%02X",j; s+=j; } printf "%02X\n",(256-s%256)%256; } print ":00000001FF"; }' > h862bin-test/full.hex
+	./h862bin h862bin-test/full.hex h862bin-test/full.bin
+	@test `wc -c < h862bin-test/full.bin` -eq 65536

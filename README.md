@@ -7,6 +7,7 @@ Simple tools collected to faciliate the cross development of executables running
 - `cmdinfo` Details the structure of a .CMD file and can extract CODE, DATA and EXTRA segments
 - `cmdmod` Creates, modifies or deletes a segment (group) of a .CMD file in place
 - `bin2cmd` Converts a .COM/.BIN file (DOS .COM binary) to a .CMD
+- `h862bin` Converts Intel HEX / ASM-86 H86 to a flat binary image
 - `exe2cmd` Converts a .EXE file (DOS .EXE binary) to a .CMD (Small Model)
 
 bin2cmd and exe2cmd originate from John Elliot Code...
@@ -67,6 +68,29 @@ cmdmod -d file.cmd index
 - Files with RSX or fixup records are refused, as is deleting the only group
 - Warns (`WRN:`) when the resulting file is 8080 model and has groups the loader ignores, see below
 - The file is rewritten through a temporary `.$$$` file, groups are padded to 16 bytes and the file to 512 bytes
+
+## h862bin Usage
+
+```
+h862bin file.h86 file.bin
+     - converts Intel HEX / ASM-86 H86 to a contiguous binary image
+     - strips the origin; adds no base page, header or padding
+```
+
+| Input | Handling |
+| --- | --- |
+| Intel HEX data (`00`) | Included in the image |
+| ASM-86 segment data (`81`–`84`) | Included at their declared offsets |
+| Start address (`03`) | Validated, then ignored |
+| End of file (`01`) | Stops reading; CP/M padding afterwards is ignored |
+| Bad checksum/length, unsupported record, overlap, hole, missing EOF | Rejected with `ERR:` and a nonzero exit status |
+
+Addresses must fit the 16-bit range. Records may be out of order, but must
+form one contiguous image with no overlapping code/data offsets. This is a
+flat-image converter, not a linker. Input is validated before output is written;
+a temporary `.$$$` file replaces the destination on success. Input and output
+must have different names. `INF:` progress and `ERR:` diagnostics go to stderr;
+stdout is unused. On CP/M, the filesystem pads output to 128-byte records.
 
 ## exe2cmd Usage
 
@@ -237,9 +261,11 @@ Native (build with `make`), each test works in its own directory (removed by `ma
 |--------|-----------|--------|
 | `make test-cmdinfo` | `cmdinfo-test` | group types, base/min/max, 8080 model warnings, extraction, errors |
 | `make test-cmdmod` | `cmdmod-test` | create, resize, zero-size group, delete, round trip of `test.bin` |
+| `make test-h862bin` | `h862bin-test` | Intel/ASM-86 records, out-of-order data, 64K range, padding and validation failures |
 | `make test-bin2cmd` | `bin2cmd-test` | zero page, `-n`, `-m`, `test.bin` |
 
 - `test.bin` is a masm "hello" for CP/M-86. When `emu2` is available (`EMU=` to override) the converted files are run and their output is checked
+- H86 conversion under either emulator target: `make -f Makefile.cpm86 test-h862bin-emu2` or `make -f Makefile.dos test-h862bin-emu2`.
 - Cross-built tools (Aztec C) are tested with `make -f Makefile.cpm86 test-emu2` and `make -f Makefile.dos test`: they run under `emu2` (which needs a terminal), and their output is compared with the native tools in `emu-test`
 
 ## CP/M and DOS builds
