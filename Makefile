@@ -196,7 +196,7 @@ test-h862bin: h862bin
 	./h862bin h862bin-test/full.hex h862bin-test/full.bin
 	@test `wc -c < h862bin-test/full.bin` -eq 65536
 
-.PHONY: all clean dist
+.PHONY: all clean
 
 .PHONY: test-bin2asm
 test-bin2asm: bin2asm

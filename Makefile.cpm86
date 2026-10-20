@@ -38,9 +38,9 @@ clean:
 	$(RM) *.o $(TOOLS) cpmtest.img cpm86-cmdtools.zip
 	$(RM) -r emu-test
 
-cpmtest.img: $(TOOLS) Makefile.cpm86 
+cpmtest.img: $(TOOLS) Makefile.cpm86
 	cp base.img cpmtest.img
-	cpmcp -f ibmpc-514ss cpmtest.img *.cmd 0:
+	cpmcp -f ibmpc-514ss cpmtest.img $(TOOLS) 0:
 	cpmls -F -f ibmpc-514ss cpmtest.img 0:*.*
 
 # --------------------------------------------------------------------

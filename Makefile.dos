@@ -37,7 +37,7 @@ exe2cmd$(BINEXT): exe2cmd.o
 	$(STRIP) $@
 
 clean:
-	$(RM) *.o $(TOOLS)
+	$(RM) *.o $(TOOLS) dos-cmdtools.zip
 	$(RM) -r emu-test
 
 test: test-emu2
