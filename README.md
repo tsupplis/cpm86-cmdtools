@@ -356,4 +356,4 @@ For this cross development environment, please use (https://github.com/tsupplis/
 
 ## License
 
-The whole repository is under LGPL 2.1 (License)[LICENSE.md].
+The whole repository is under LGPL 2.1 [License](LICENSE.md).
