@@ -13,3 +13,8 @@ ln -o exe2cmd.cmd exe2cmd.o p:m.lib p:c.lib
 cc -D__CPM86__ -ip: h862bin.c
 sqz h862bin.o
 ln -o h862bin.cmd h862bin.o p:m.lib p:c.lib
+cc -D__CPM86__ -ip: bin2asm.c
+sqz bin2asm.o
+cc -D__CPM86__ -ip: b2aconf.c
+sqz b2aconf.o
+ln -o bin2asm.cmd bin2asm.o b2aconf.o p:m.lib p:c.lib

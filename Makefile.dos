@@ -5,12 +5,18 @@ LDFLAGS=-lm -lc
 LD=aztec34_link
 BINEXT=.com
 
-TOOLS=h862bin$(BINEXT) cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT) exe2cmd$(BINEXT)
+TOOLS=h862bin$(BINEXT) cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT) exe2cmd$(BINEXT) \
+    bin2asm$(BINEXT)
 
 all: $(TOOLS)
 
+bin2asm.o b2aconf.o: b2aconf.h
+
 h862bin$(BINEXT): h862bin.o
 	$(LD) -o $@ $< $(LDFLAGS)
+
+bin2asm$(BINEXT): bin2asm.o b2aconf.o
+	$(LD) -o $@ $^ $(LDFLAGS)
 
 include Makefile.emutest
 
@@ -36,3 +42,10 @@ clean:
 
 test: test-emu2
 
+
+.PHONY: all clean dist test
+dist: dos-cmdtools.zip
+
+dos-cmdtools.zip: $(TOOLS) Makefile.dos
+	$(RM) $@
+	zip -j $@ $(TOOLS)

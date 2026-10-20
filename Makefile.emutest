@@ -54,3 +54,7 @@ test-h862bin-emu2: h862bin$(BINEXT)
 	$(RM) x.bin; \
 	$(EMU2) ../h862bin$(BINEXT) checksum.hex x.bin > run.txt 2>&1 || true; \
 	grep -q 'ERR:.*Bad checksum' run.txt; test ! -f x.bin
+
+.PHONY: test-bin2asm-emu2
+test-bin2asm-emu2: bin2asm$(BINEXT)
+	python3 tools/b2atest.py --emu ./bin2asm$(BINEXT)

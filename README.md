@@ -8,6 +8,7 @@ Simple tools collected to faciliate the cross development of executables running
 - `cmdmod` Creates, modifies or deletes a segment (group) of a .CMD file in place
 - `bin2cmd` Converts a .COM/.BIN file (DOS .COM binary) to a .CMD
 - `h862bin` Converts Intel HEX / ASM-86 H86 to a flat binary image
+- `bin2asm` Converts binary bytes to NASM or MASM/ASM86 data declarations
 - `exe2cmd` Converts a .EXE file (DOS .EXE binary) to a .CMD (Small Model)
 
 bin2cmd and exe2cmd originate from John Elliot Code...
@@ -91,6 +92,40 @@ flat-image converter, not a linker. Input is validated before output is written;
 a temporary `.$$$` file replaces the destination on success. Input and output
 must have different names. `INF:` progress and `ERR:` diagnostics go to stderr;
 stdout is unused. On CP/M, the filesystem pads output to 128-byte records.
+
+## bin2asm Usage
+
+```
+bin2asm [-m] [-p] [-s skiphex] [-o originhex] [-l lengthhex]
+        [-f file.asm] [file.bin [file.asm]]
+```
+
+| Option | Description |
+| --- | --- |
+| `-m` | MASM/ASM86 literals (`0ffh`); default is NASM (`0xff`) |
+| `-p` | Emit `label_XXXX:` before each row of up to eight bytes |
+| `-s skiphex` | Skip input bytes; default 0 |
+| `-o originhex` | Add an origin to label addresses; default 0 |
+| `-l lengthhex` | Convert at most this many bytes; default through EOF |
+| `-f file.asm` | Write to this file instead of stdout; a second filename is equivalent |
+| `-h` | Display help |
+
+Numbers are hexadecimal, as in `cmdmod`; `0x` prefixes and `h` suffixes are
+also accepted. Options accept uppercase and lowercase. Omit the input or use
+`-` for stdin; `--` ends option parsing. No arguments display usage and fail.
+`-o` changes label addresses, without inserting an ORG directive or padding.
+Labels address `origin + skip + byte offset`. Input is read in binary mode;
+ASCII comments accompany each row. Diagnostics use `INF:` / `ERR:` on stderr,
+while stdout contains only assembly text. On CP/M, input includes record
+padding; use `-l` for a known exact length.
+
+Examples:
+
+```
+bin2asm -m -f bootsect.inc bootsect.bin
+bin2asm -p -s 100 -o 1000 -l 20 image.bin fragment.asm
+bin2asm -m - < image.bin > image.inc
+```
 
 ## exe2cmd Usage
 
@@ -262,10 +297,12 @@ Native (build with `make`), each test works in its own directory (removed by `ma
 | `make test-cmdinfo` | `cmdinfo-test` | group types, base/min/max, 8080 model warnings, extraction, errors |
 | `make test-cmdmod` | `cmdmod-test` | create, resize, zero-size group, delete, round trip of `test.bin` |
 | `make test-h862bin` | `h862bin-test` | Intel/ASM-86 records, out-of-order data, 64K range, padding and validation failures |
+| `make test-bin2asm` | temporary directory | binary ranges, 64K input, labels, errors, stdin and NASM round trips |
 | `make test-bin2cmd` | `bin2cmd-test` | zero page, `-n`, `-m`, `test.bin` |
 
 - `test.bin` is a masm "hello" for CP/M-86. When `emu2` is available (`EMU=` to override) the converted files are run and their output is checked
 - H86 conversion under either emulator target: `make -f Makefile.cpm86 test-h862bin-emu2` or `make -f Makefile.dos test-h862bin-emu2`.
+- BIN2ASM under either emulator target: `make -f Makefile.cpm86 test-bin2asm-emu2` or `make -f Makefile.dos test-bin2asm-emu2`.
 - Cross-built tools (Aztec C) are tested with `make -f Makefile.cpm86 test-emu2` and `make -f Makefile.dos test`: they run under `emu2` (which needs a terminal), and their output is compared with the native tools in `emu-test`
 
 ## CP/M and DOS builds
@@ -273,6 +310,16 @@ Native (build with `make`), each test works in its own directory (removed by `ma
 - CP/M has no exact file length, files are padded to whole 128-byte records: `bin2cmd` and `cmdmod -s` size a binary input by reading it, so its length is rounded up to 128 bytes
 - CP/M upper-cases the command line: options are accepted in lower or upper case (`-M 1000`)
 - Aztec C `printf` rounds sizes in `cmdinfo` such as `0.25K` up, the native one to even
+
+## Distribution
+
+`make -f Makefile.cpm86 dist` creates `cpm86-cmdtools.zip` containing all six
+CMD tools, including `bin2asm.cmd`. `make -f Makefile.dos dist` creates
+`dos-cmdtools.zip` with the six COM tools, including `bin2asm.com`.
+Archives are rebuilt only when their tools or packaging Makefile change.
+Use the matching Makefile's `clean` before switching between the two Aztec
+compilers: their intermediate `.o` files are incompatible. Native builds
+compile directly from source and do not reuse those objects.
 
 ## Build Environment
 
@@ -304,3 +351,9 @@ For this cross development environment, please use (https://github.com/tsupplis/
 | [cpm86-menu](https://github.com/tsupplis/cpm86-menu)   | A submit replacement and a menu system for submit orchestration for CP/M-86 1.1 |
 | [cpm86-make](https://github.com/tsupplis/cpm86-make)   | A simple submit based make tool for CP/M-86 1.1 |
 | [pcdos11-hacking](https://github.com/tsupplis/pcdos11-hacking) | PC-DOS 1.1 distribution, tools and notes |
+
+-- 
+
+## License
+
+The whole repository is under LGPL 2.1 (License)[LICENSE.md].

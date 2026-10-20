@@ -8,9 +8,13 @@ EMU=emu2
 # Runs a CMD with the emulator, checking the output of test.bin (skipped if absent)
 RUNHELLO=if command -v $(EMU) >/dev/null; then $(EMU) $(1) | grep -q 'Hello from assembler'; else echo "WRN: $(EMU) not found, run skipped"; fi
 
-TOOLS=h862bin$(BINEXT) cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT)  exe2cmd$(BINEXT)
+TOOLS=h862bin$(BINEXT) cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT)  exe2cmd$(BINEXT) bin2asm$(BINEXT)
 
 all: $(TOOLS)
+
+bin2asm$(BINEXT): bin2asm.c b2aconf.c b2aconf.h
+	$(CC) $(CFLAGS) -o $@ bin2asm.c b2aconf.c $(LDFLAGS)
+	$(STRIP) $@
 
 h862bin$(BINEXT): h862bin.c
 	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
@@ -191,3 +195,9 @@ test-h862bin: h862bin
 	awk 'BEGIN { for (a=0; a<65536; a+=128) { printf ":80%04X00",a; s=128+int(a/256)+a%256; for (j=0;j<128;j++) { printf "%02X",j; s+=j; } printf "%02X\n",(256-s%256)%256; } print ":00000001FF"; }' > h862bin-test/full.hex
 	./h862bin h862bin-test/full.hex h862bin-test/full.bin
 	@test `wc -c < h862bin-test/full.bin` -eq 65536
+
+.PHONY: all clean dist
+
+.PHONY: test-bin2asm
+test-bin2asm: bin2asm
+	python3 tools/b2atest.py ./bin2asm

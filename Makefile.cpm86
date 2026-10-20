@@ -5,9 +5,15 @@ LDFLAGS=-lm -lc86
 LD=aztec42_link
 BINEXT=.cmd
 
-TOOLS=h862bin$(BINEXT) cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT) exe2cmd$(BINEXT)
+TOOLS=h862bin$(BINEXT) cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT) exe2cmd$(BINEXT) \
+    bin2asm$(BINEXT)
 
 all: $(TOOLS)
+
+bin2asm.o b2aconf.o: b2aconf.h
+
+bin2asm$(BINEXT): bin2asm.o b2aconf.o
+	$(LD) -o $@ $^ $(LDFLAGS)
 
 h862bin$(BINEXT): h862bin.o
 	$(LD) -o $@ $< $(LDFLAGS)
@@ -32,7 +38,7 @@ clean:
 	$(RM) *.o $(TOOLS) cpmtest.img cpm86-cmdtools.zip
 	$(RM) -r emu-test
 
-cpmtest.img: $(TOOLS) Makefile 
+cpmtest.img: $(TOOLS) Makefile.cpm86 
 	cp base.img cpmtest.img
 	cpmcp -f ibmpc-514ss cpmtest.img *.cmd 0:
 	cpmls -F -f ibmpc-514ss cpmtest.img 0:*.*
@@ -42,9 +48,9 @@ cpmtest.img: $(TOOLS) Makefile
 # --------------------------------------------------------------------
 dist: cpm86-cmdtools.zip
 
-cpm86-cmdtools.zip: $(TOOLS)
+cpm86-cmdtools.zip: $(TOOLS) Makefile.cpm86
 	rm -f cpm86-cmdtools.zip
-	zip -j cpm86-cmdtools.zip $^
+	zip -j cpm86-cmdtools.zip $(TOOLS)
 
 
 cpm86.img:
@@ -55,3 +61,5 @@ test: cpmtest.img cpm86.img
 	./cpm86
 
 include Makefile.emutest
+
+.PHONY: all clean dist

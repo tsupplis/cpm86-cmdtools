@@ -13,3 +13,8 @@ ln -o exe2cmd.com exe2cmd.o -lm -lc
 cc -D__MSDOS__ h862bin.c
 sqz h862bin.o
 ln -o h862bin.com h862bin.o -lm -lc
+cc -D__MSDOS__ bin2asm.c
+sqz bin2asm.o
+cc -D__MSDOS__ b2aconf.c
+sqz b2aconf.o
+ln -o bin2asm.com bin2asm.o b2aconf.o -lm -lc
