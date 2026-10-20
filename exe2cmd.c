@@ -28,9 +28,8 @@
 
 #define DS_LEN 0xF0	/* Length of data segment (paras) */
 
-#if (DS_LEN * 16) < 72
-#error DS_LEN too small: dsbytes - 72 would underflow
-#endif
+/* Compile-time check, including on Aztec 3.x without #error support. */
+typedef char ds_len_check[(DS_LEN * 16 >= 72) ? 1 : -1];
 
 int gl_base = 0x60;
 
