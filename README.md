@@ -356,9 +356,4 @@ For this cross development environment, please use (https://github.com/tsupplis/
 
 ## License
 
-The whole repository is under MIT [License](LICENSE.md) unless specified otherwise in a subdirectory.
--- 
-
-## License
-
 The whole repository is under LGPL 2.1 [License](LICENSE.md).
