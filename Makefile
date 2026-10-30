@@ -1,4 +1,4 @@
-.PHONY: all clean dist
+.PHONY: all clean dist test
 
 CC=cc
 CFLAGS=-O
@@ -205,8 +205,18 @@ test-h862bin: h862bin
 	./h862bin h862bin-test/full.hex h862bin-test/full.bin
 	@test `wc -c < h862bin-test/full.bin` -eq 65536
 
+test: test-cmdinfo test-cmdmod test-bin2cmd test-h862bin test-bin2asm test-h862cmd
+	@echo "PASS: all tests"
+
 .PHONY: all clean
 
 .PHONY: test-bin2asm
 test-bin2asm: bin2asm
 	python3 tools/b2atest.py ./bin2asm
+
+.PHONY: test-h862cmd
+test-h862cmd: h862cmd
+	./h862cmd sample.h86 /tmp/h862cmd-test.cmd -8080 2>/dev/null
+	cmp /tmp/h862cmd-test.cmd samplecmd.ref
+	$(RM) /tmp/h862cmd-test.cmd
+	@echo "PASS: h862cmd sample.h86 -8080 matches samplecmd.ref"

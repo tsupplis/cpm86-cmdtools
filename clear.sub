@@ -1,5 +1,8 @@
 era cmdinfo.cmd
+era cmdmod.cmd
 era bin2cmd.cmd
 era exe2cmd.cmd
-era *.o
+era h862bin.cmd
+era h862cmd.cmd
 era bin2asm.cmd
+era *.o

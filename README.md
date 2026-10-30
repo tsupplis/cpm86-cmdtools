@@ -8,11 +8,12 @@ Simple tools collected to facilitate the cross development of executables runnin
 |------|-------------|
 | `cmdinfo` | Details the structure of a .CMD file and can extract CODE, DATA and EXTRA segments |
 | `cmdmod`  | Creates, modifies or deletes a segment (group) of a .CMD file in place |
-| `bin2cmd` | Converts a .COM/.BIN file (DOS .COM binary) to a .CMD |
-| `h862bin` | Converts Intel HEX / ASM-86 H86 to a flat binary image |
-| `h862cmd` | Converts Intel HEX / ASM-86 H86 directly to a .CMD file |
+| `bin2cmd` | Converts a flat binary image (DOS .COM binary) to a .CMD (8080 model) |
+| `h862bin` | Converts ASM-86 H86 to a flat binary image |
+| `hex2bin` | Converts old Intel HEX to a flat binary image |
+| `h862cmd` | Converts ASM-86 H86 directly to a .CMD file (GENCMD clone) |
 | `bin2asm` | Converts binary bytes to NASM or MASM/ASM86 data declarations |
-| `exe2cmd` | Converts a .EXE file (DOS .EXE binary) to a .CMD (Small Model) |
+| `exe2cmd` | Converts a .EXE file (DOS .EXE binary) to a .CMD (small model) |
 
 `bin2cmd` and `exe2cmd` originate from John Elliott's code.
 
@@ -94,6 +95,27 @@ form one contiguous image with no overlapping code/data offsets. This is a
 flat-image converter, not a linker. Input is validated before output is written;
 a temporary `.$$$` file replaces the destination on success. Input and output
 must have different names. `INF:` progress and `ERR:` diagnostics go to stderr;
+stdout is unused. On CP/M, the filesystem pads output to 128-byte records.
+
+## hex2bin Usage
+
+```
+hex2bin file.hex file.bin
+     - converts CP/M / Intel HEX to a flat binary image
+     - strips the origin; adds no base page, header or padding
+```
+
+| Input | Handling |
+| --- | --- |
+| Intel HEX data (`00`) | Included in the image |
+| Zero-length data record (`00`, length 0) | Treated as end of file |
+| Start address (`03`) | Validated, then ignored |
+| End of file (`01`) | Stops reading; CP/M padding afterwards is ignored |
+| Bad checksum/length, unsupported record, overlap, hole, missing EOF | Rejected with `ERR:` and a nonzero exit status |
+
+Like `h862bin` but accepts only plain Intel HEX — no ASM-86 segment records (`81`–`84`).
+Input is validated before output is written; a temporary `.$$$` file replaces the destination on success.
+Input and output must have different names. `INF:` progress and `ERR:` diagnostics go to stderr;
 stdout is unused. On CP/M, the filesystem pads output to 128-byte records.
 
 ## h862cmd Usage

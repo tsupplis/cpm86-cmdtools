@@ -31,8 +31,10 @@ cmdmod-test
 bin2cmd-test
 cmdinfo-test
 emu-test
-
 h862bin
+h862cmd
+hex2bin
 h862bin-test
-
 bin2asm
+sample.cmd
+
