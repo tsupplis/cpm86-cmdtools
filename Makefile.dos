@@ -1,30 +1,35 @@
-CC=aztec34_cc
-CFLAGS=-D__MSDOS__
-STRIP=aztec34_sqz
-LDFLAGS=-lm -lc
-LD=aztec34_link
-BINEXT=.com
+.PHONY: all clean dist
 
-TOOLS=h862bin$(BINEXT) cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT) exe2cmd$(BINEXT) \
-    bin2asm$(BINEXT)
+CC=aztec42_cc
+CFLAGS=-L60 -D__MSDOS__ 
+STRIP=aztec42_sqz
+LDFLAGS=-lc
+LD=aztec42_link
+BINEXT=.cin
+
+TOOLS=h862bin$(BINEXT) h862cmd$(BINEXT) hex2bin$(BINEXT) cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT)  exe2cmd$(BINEXT) bin2asm$(BINEXT)
 
 all: $(TOOLS)
 
 bin2asm.o b2aconf.o: b2aconf.h
 
-h862bin$(BINEXT): h862bin.o
+bin2asm$(BINEXT): bin2asm.o b2aconf.o b2aconf.h
+	$(LD) -o $@ bin2asm.o b2aconf.o $(LDFLAGS)
+
+hex2bin$(BINEXT): hex2bin.o
 	$(LD) -o $@ $< $(LDFLAGS)
 
-bin2asm$(BINEXT): bin2asm.o b2aconf.o
-	$(LD) -o $@ $^ $(LDFLAGS)
+h862cmd$(BINEXT): h862cmd.o
+	$(LD) -o $@ $< $(LDFLAGS)
 
-include Makefile.emutest
+h862bin$(BINEXT): h862bin.o
+	$(LD) -o $@ $< $(LDFLAGS)
 
 bin2cmd$(BINEXT): bin2cmd.o
 	$(LD) -o $@ $< $(LDFLAGS)
 
 cmdinfo$(BINEXT): cmdinfo.o
-	$(LD) -o $@ $< $(LDFLAGS)
+	$(LD) -o $@ $< -lm $(LDFLAGS)
 
 cmdmod$(BINEXT): cmdmod.o
 	$(LD) -o $@ $< $(LDFLAGS)
@@ -37,13 +42,17 @@ exe2cmd$(BINEXT): exe2cmd.o
 	$(STRIP) $@
 
 clean:
-	$(RM) *.o $(TOOLS) dos-cmdtools.zip
+	$(RM) *.cin *.o $(TOOLS) *.cmd *.com dos-cmdtools.zip
 	$(RM) -r emu-test
 
-test: test-emu2
+cpmtest.img: $(TOOLS) Makefile.cpm86
+	cp base.img cpmtest.img
+	cpmcp -f ibmpc-514ss cpmtest.img $(TOOLS) 0:
+	cpmls -F -f ibmpc-514ss cpmtest.img 0:*.*
 
-
-.PHONY: all clean dist test
+# --------------------------------------------------------------------
+# Binary zip
+# --------------------------------------------------------------------
 dist: dos-cmdtools.zip
 
 dos-cmdtools.zip: $(TOOLS) Makefile.dos

@@ -1,3 +1,5 @@
+.PHONY: all clean dist
+
 CC=cc
 CFLAGS=-O
 STRIP=strip
@@ -8,12 +10,22 @@ EMU=emu2
 # Runs a CMD with the emulator, checking the output of test.bin (skipped if absent)
 RUNHELLO=if command -v $(EMU) >/dev/null; then $(EMU) $(1) | grep -q 'Hello from assembler'; else echo "WRN: $(EMU) not found, run skipped"; fi
 
-TOOLS=h862bin$(BINEXT) cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT)  exe2cmd$(BINEXT) bin2asm$(BINEXT)
+TOOLS=h862bin$(BINEXT) h862cmd$(BINEXT) hex2bin$(BINEXT) cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT)  exe2cmd$(BINEXT) bin2asm$(BINEXT)
 
 all: $(TOOLS)
 
+bin2asm.o b2aconf.o: b2aconf.h
+
 bin2asm$(BINEXT): bin2asm.c b2aconf.c b2aconf.h
 	$(CC) $(CFLAGS) -o $@ bin2asm.c b2aconf.c $(LDFLAGS)
+	$(STRIP) $@
+
+hex2bin$(BINEXT): hex2bin.c
+	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
+	$(STRIP) $@
+
+h862cmd$(BINEXT): h862cmd.c
+	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
 	$(STRIP) $@
 
 h862bin$(BINEXT): h862bin.c
@@ -36,13 +48,10 @@ exe2cmd$(BINEXT): exe2cmd.c
 	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
 	$(STRIP) $@
 
-# Native objects are not used: cross builds (Makefile.cpm86, Makefile.dos) leave
-# incompatible *.o files in this directory
 clean:
-	$(RM) $(TOOLS)
+	$(RM) *.cin *.o $(TOOLS) *.cmd *.com
 	$(RM) -r cmdinfo-test cmdmod-test bin2cmd-test h862bin-test
 
-# Exercises cmdinfo (all group types, base/min/max, 8080 model warnings, extraction, errors) in ./cmdinfo-test
 test-cmdinfo: cmdinfo cmdmod bin2cmd
 	$(RM) -r cmdinfo-test && mkdir cmdinfo-test
 	head -c 300 cmdmod.c > cmdinfo-test/a.bin

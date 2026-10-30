@@ -9,14 +9,15 @@
  */
 
 #ifdef __STDC__
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #endif
-#include <stdio.h>
 #include <errno.h>
+#include <stdio.h>
 
 #ifdef __STDC__
-#if defined(__APPLE__) || defined(__gnu_linux__) || defined(__GNUC__) || defined(__clang__)
+#if defined(__APPLE__) || defined(__gnu_linux__) || defined(__GNUC__) ||       \
+    defined(__clang__)
 #include <unistd.h>
 #define BINARY_READ "rb"
 #define BINARY_WRITE "wb"
@@ -39,18 +40,25 @@ static long lowest, highest;
 #ifdef __STDC__
 int hex_digit(int c) {
 #else
-int hex_digit(c) int c; {
+int hex_digit(c)
+int c;
+{
 #endif
-    if (c >= '0' && c <= '9') return c - '0';
-    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
-    if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+    if (c >= '0' && c <= '9')
+        return c - '0';
+    if (c >= 'a' && c <= 'f')
+        return c - 'a' + 10;
+    if (c >= 'A' && c <= 'F')
+        return c - 'A' + 10;
     return -1;
 }
 
 #ifdef __STDC__
 int white(int c) {
 #else
-int white(c) int c; {
+int white(c)
+int c;
+{
 #endif
     return c == ' ' || c == '\t' || c == '\r' || c == '\f' || c == '\v';
 }
@@ -58,7 +66,9 @@ int white(c) int c; {
 #ifdef __STDC__
 int bad_record(char *name, char *message) {
 #else
-int bad_record(name, message) char *name, *message; {
+int bad_record(name, message)
+char *name, *message;
+{
 #endif
     fprintf(stderr, "ERR: %s:%ld: %s\n", name, record_line, message);
     return -1;
@@ -68,35 +78,48 @@ int bad_record(name, message) char *name, *message; {
 #ifdef __STDC__
 int read_record(FILE *input, char *name) {
 #else
-int read_record(input, name) FILE *input; char *name; {
+int read_record(input, name)
+FILE *input;
+char *name;
+{
 #endif
     int c, digit, half, count, sum;
     for (;;) {
         c = fgetc(input);
         if (c == EOF) {
             if (ferror(input)) {
-                fprintf(stderr, "ERR: Can't read input '%s' (%d)\n", name, errno);
+                fprintf(stderr, "ERR: Can't read input '%s' (%d)\n", name,
+                        errno);
                 return -1;
             }
             return 0;
         }
-        if (c == '\n') { line_number++; continue; }
-        if (!white(c)) break;
+        if (c == '\n') {
+            line_number++;
+            continue;
+        }
+        if (!white(c))
+            break;
     }
     record_line = line_number;
-    if (c != ':') return bad_record(name, "Not a hex record");
+    if (c != ':')
+        return bad_record(name, "Not a hex record");
     count = sum = 0;
     half = -1;
     while ((c = fgetc(input)) != EOF && c != '\n') {
         /* ASM-86 uses CRLF; ignore CR as the Python converter did. */
-        if (c == '\r') continue;
+        if (c == '\r')
+            continue;
         if (white(c)) {
-            if (half >= 0) return bad_record(name, "Not hexadecimal");
+            if (half >= 0)
+                return bad_record(name, "Not hexadecimal");
             continue;
         }
         digit = hex_digit(c);
-        if (digit < 0) return bad_record(name, "Not hexadecimal");
-        if (half < 0) half = digit;
+        if (digit < 0)
+            return bad_record(name, "Not hexadecimal");
+        if (half < 0)
+            half = digit;
         else {
             if (count == sizeof(record))
                 return bad_record(name, "Record is too long");
@@ -110,18 +133,24 @@ int read_record(input, name) FILE *input; char *name; {
         fprintf(stderr, "ERR: Can't read input '%s' (%d)\n", name, errno);
         return -1;
     }
-    if (c == '\n') line_number++;
-    if (half >= 0) return bad_record(name, "Not hexadecimal");
+    if (c == '\n')
+        line_number++;
+    if (half >= 0)
+        return bad_record(name, "Not hexadecimal");
     if (count < 5 || count != record[0] + 5)
         return bad_record(name, "Record length does not match");
-    if (sum) return bad_record(name, "Bad checksum");
+    if (sum)
+        return bad_record(name, "Bad checksum");
     return 1;
 }
 
 #ifdef __STDC__
 int validate(FILE *input, char *name) {
 #else
-int validate(input, name) FILE *input; char *name; {
+int validate(input, name)
+FILE *input;
+char *name;
+{
 #endif
     int result, type, i, bit, ended;
     long address, end, pos;
@@ -132,8 +161,12 @@ int validate(input, name) FILE *input; char *name; {
     ended = 0;
     while ((result = read_record(input, name)) > 0) {
         type = record[3];
-        if (type == 1) { ended = 1; break; }
-        if (type == 3) continue;
+        if (type == 1) {
+            ended = 1;
+            break;
+        }
+        if (type == 3)
+            continue;
         if (type != 0 && (type < 0x81 || type > 0x84))
             return bad_record(name, "Unsupported record type");
         address = (long)record[1] * 256 + record[2];
@@ -148,11 +181,14 @@ int validate(input, name) FILE *input; char *name; {
             seen[(unsigned int)(pos >> 3)] |= bit;
         }
         if (record[0]) {
-            if (address < lowest) lowest = address;
-            if (end > highest) highest = end;
+            if (address < lowest)
+                lowest = address;
+            if (end > highest)
+                highest = end;
         }
     }
-    if (result < 0) return -1;
+    if (result < 0)
+        return -1;
     if (!ended) {
         fprintf(stderr, "ERR: %s: No end of file record\n", name);
         return -1;
@@ -174,14 +210,20 @@ int validate(input, name) FILE *input; char *name; {
 #ifdef __STDC__
 int same_name(char *a, char *b) {
 #else
-int same_name(a, b) char *a, *b; {
+int same_name(a, b)
+char *a, *b;
+{
 #endif
     int x, y;
     do {
-        x = *a++; y = *b++;
-        if (x >= 'a' && x <= 'z') x -= 'a' - 'A';
-        if (y >= 'a' && y <= 'z') y -= 'a' - 'A';
-        if (x != y) return 0;
+        x = *a++;
+        y = *b++;
+        if (x >= 'a' && x <= 'z')
+            x -= 'a' - 'A';
+        if (y >= 'a' && y <= 'z')
+            y -= 'a' - 'A';
+        if (x != y)
+            return 0;
     } while (x);
     return 1;
 }
@@ -193,14 +235,20 @@ usage() {
 #endif
     fprintf(stderr, "ERR: Invalid command line\n");
     fprintf(stderr, "INF: h862bin file.h86 file.bin\n");
-    fprintf(stderr, "     - converts Intel HEX / ASM-86 H86 to a flat binary image\n");
-    fprintf(stderr, "     - strips the origin; rejects holes, overlaps and bad records\n");
+    fprintf(stderr,
+            "     - converts Intel HEX / ASM-86 H86 to a flat binary image\n");
+    fprintf(
+        stderr,
+        "     - strips the origin; rejects holes, overlaps and bad records\n");
 }
 
 #ifdef __STDC__
 int main_alt(int argc, char **argv) {
 #else
-int main_alt(argc, argv) int argc; char **argv; {
+int main_alt(argc, argv)
+int argc;
+char **argv;
+{
 #endif
     FILE *input, *output;
     static char temporary[300];
@@ -208,7 +256,10 @@ int main_alt(argc, argv) int argc; char **argv; {
     int result, failed;
     long address;
     input = output = NULL;
-    if (argc != 3) { usage(); return 1; }
+    if (argc != 3) {
+        usage();
+        return 1;
+    }
     if (same_name(argv[1], argv[2])) {
         fprintf(stderr, "ERR: Input and output must be different files\n");
         return 1;
@@ -220,12 +271,15 @@ int main_alt(argc, argv) int argc; char **argv; {
     strcpy(temporary, argv[2]);
     dot = NULL;
     for (p = temporary; *p; p++) {
-        if (*p == '.') dot = p;
-        else if (*p == '/' || *p == '\\' || *p == ':') dot = NULL;
+        if (*p == '.')
+            dot = p;
+        else if (*p == '/' || *p == '\\' || *p == ':')
+            dot = NULL;
     }
     strcpy(dot ? dot : p, ".$$$");
     if (same_name(temporary, argv[1]) || same_name(temporary, argv[2])) {
-        fprintf(stderr, "ERR: Can't derive a temporary name from '%s'\n", argv[2]);
+        fprintf(stderr, "ERR: Can't derive a temporary name from '%s'\n",
+                argv[2]);
         return 1;
     }
     input = fopen(argv[1], BINARY_READ);
@@ -233,13 +287,14 @@ int main_alt(argc, argv) int argc; char **argv; {
         fprintf(stderr, "ERR: Can't open input '%s' (%d)\n", argv[1], errno);
         return 1;
     }
-    if (validate(input, argv[1]) < 0) goto fail;
+    if (validate(input, argv[1]) < 0)
+        goto fail;
     if (fseek(input, 0L, SEEK_SET)) {
         fprintf(stderr, "ERR: Can't rewind input '%s' (%d)\n", argv[1], errno);
         goto fail;
     }
-    fprintf(stderr, "INF: FILE(%s) ORIGIN(%04lx) SIZE(%ld)\n",
-            argv[1], lowest, highest - lowest);
+    fprintf(stderr, "INF: FILE(%s) ORIGIN(%04lx) SIZE(%ld)\n", argv[1], lowest,
+            highest - lowest);
     output = fopen(temporary, BINARY_WRITE);
     if (!output) {
         fprintf(stderr, "ERR: Can't open output '%s' (%d)\n", temporary, errno);
@@ -248,21 +303,26 @@ int main_alt(argc, argv) int argc; char **argv; {
     failed = 0;
     line_number = 1;
     while ((result = read_record(input, argv[1])) > 0) {
-        if (record[3] == 1) break;
-        if (record[3] == 3 || !record[0]) continue;
+        if (record[3] == 1)
+            break;
+        if (record[3] == 3 || !record[0])
+            continue;
         address = (long)record[1] * 256 + record[2] - lowest;
         if (fseek(output, address, SEEK_SET) ||
             fwrite(record + 4, 1, record[0], output) != record[0]) {
-            fprintf(stderr, "ERR: Can't write output '%s' (%d)\n", temporary, errno);
+            fprintf(stderr, "ERR: Can't write output '%s' (%d)\n", temporary,
+                    errno);
             failed = 1;
             break;
         }
     }
-    if (result <= 0 || failed) goto fail;
+    if (result <= 0 || failed)
+        goto fail;
     if (fclose(output)) {
         output = NULL;
         unlink(temporary);
-        fprintf(stderr, "ERR: Can't close output '%s' (%d)\n", temporary, errno);
+        fprintf(stderr, "ERR: Can't close output '%s' (%d)\n", temporary,
+                errno);
         goto fail;
     }
     output = NULL;
@@ -279,15 +339,22 @@ int main_alt(argc, argv) int argc; char **argv; {
     fprintf(stderr, "INF: OUTPUT(%s) SIZE(%ld)\n", argv[2], highest - lowest);
     return 0;
 fail:
-    if (output) { fclose(output); unlink(temporary); }
-    if (input) fclose(input);
+    if (output) {
+        fclose(output);
+        unlink(temporary);
+    }
+    if (input)
+        fclose(input);
     return 1;
 }
 
 #ifdef __STDC__
 int main(int argc, char **argv) {
 #else
-int main(argc, argv) int argc; char **argv; {
+int main(argc, argv)
+int argc;
+char **argv;
+{
 #endif
     exit(main_alt(argc, argv));
     return 0;

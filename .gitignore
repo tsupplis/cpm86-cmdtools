@@ -1,6 +1,7 @@
 rom
 **/*.zip
 **/*.lock
+**/*.cin
 test
 **/cpm86
 **/push

@@ -1,19 +1,26 @@
+.PHONY: all clean dist
+
 CC=aztec42_cc
-CFLAGS=-D__CPM86__ 
+CFLAGS=-L60 -D__CPM86__ 
 STRIP=aztec42_sqz
-LDFLAGS=-lm -lc86
+LDFLAGS=-lc86
 LD=aztec42_link
 BINEXT=.cmd
 
-TOOLS=h862bin$(BINEXT) cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT) exe2cmd$(BINEXT) \
-    bin2asm$(BINEXT)
+TOOLS=h862bin$(BINEXT) h862cmd$(BINEXT) hex2bin$(BINEXT) cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT)  exe2cmd$(BINEXT) bin2asm$(BINEXT)
 
 all: $(TOOLS)
 
 bin2asm.o b2aconf.o: b2aconf.h
 
-bin2asm$(BINEXT): bin2asm.o b2aconf.o
-	$(LD) -o $@ $^ $(LDFLAGS)
+bin2asm$(BINEXT): bin2asm.o b2aconf.o b2aconf.h
+	$(LD) -o $@ bin2asm.o b2aconf.o $(LDFLAGS)
+
+hex2bin$(BINEXT): hex2bin.o
+	$(LD) -o $@ $< $(LDFLAGS)
+
+h862cmd$(BINEXT): h862cmd.o
+	$(LD) -o $@ $< $(LDFLAGS)
 
 h862bin$(BINEXT): h862bin.o
 	$(LD) -o $@ $< $(LDFLAGS)
@@ -22,7 +29,7 @@ bin2cmd$(BINEXT): bin2cmd.o
 	$(LD) -o $@ $< $(LDFLAGS)
 
 cmdinfo$(BINEXT): cmdinfo.o
-	$(LD) -o $@ $< $(LDFLAGS)
+	$(LD) -o $@ $< -lm $(LDFLAGS)
 
 cmdmod$(BINEXT): cmdmod.o
 	$(LD) -o $@ $< $(LDFLAGS)
@@ -35,7 +42,7 @@ exe2cmd$(BINEXT): exe2cmd.o
 	$(STRIP) $@
 
 clean:
-	$(RM) *.o $(TOOLS) cpmtest.img cpm86-cmdtools.zip
+	$(RM) *.cin *.o $(TOOLS) *.cmd *.com cpmtest.img cpm86-cmdtools.zip
 	$(RM) -r emu-test
 
 cpmtest.img: $(TOOLS) Makefile.cpm86
@@ -52,7 +59,6 @@ cpm86-cmdtools.zip: $(TOOLS) Makefile.cpm86
 	rm -f cpm86-cmdtools.zip
 	zip -j cpm86-cmdtools.zip $(TOOLS)
 
-
 cpm86.img:
 	[ ! -f cpm86.img ] && wget https://github.com/tsupplis/cpm86-kernel/releases/download/v1.1-03-01/cpm86-1.img
 	[ ! -f cpm86.img ] && mv cpm86-1.img cpm86.img
@@ -61,5 +67,3 @@ test: cpmtest.img cpm86.img
 	./cpm86
 
 include Makefile.emutest
-
-.PHONY: all clean dist
