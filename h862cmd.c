@@ -3,12 +3,12 @@
  * input/output and deterministic padding.
  *
  * Command line:
- *   h862cmd name[.h86] [-code[:b<hex>][m<hex>][x<hex>][a<hex>]]
+ *   h862cmd name[.h86] name.cmd [-code[:b<hex>[:m<hex>[:x<hex>[:a<hex>]]]]
  *            [-data:...] [-extra:...] [-stack:...] [-x1:...] ... [-8080] [-nhead]
  *
- * The output is always name.cmd derived from the input basename.
+ * The output name is derived from the input basename when omitted.
  *
- * Segment flags (letter immediately followed by hex value, no spaces):
+ * Segment flags, colon-separated after the first ':', e.g. -code:b0:m20:x80:a0
  *   b<hex>  Intel HEX begin paragraph (default: 0 for CODE, FFFFh for DATA)
  *   m<hex>  minimum paragraphs in the CMD descriptor
  *   x<hex>  maximum paragraphs in the CMD descriptor (0 = no constraint)
@@ -17,9 +17,9 @@
  * Examples:
  *   h862cmd prog
  *   h862cmd prog.h86 prog.cmd
- *   h862cmd prog.h86 prog.cmd -code:b0m20 -data:b1000m10x80
+ *   h862cmd prog.h86 prog.cmd -code:b0:m20 -data:b1000:m10:x80
  *   h862cmd prog.h86 prog.cmd -8080 -code:m20
- *   h862cmd prog.h86 prog.cmd -nhead -code:b0m20
+ *   h862cmd prog.h86 prog.cmd -nhead -code:b0:m20
  */
 #include <ctype.h>
 #include <errno.h>
@@ -304,8 +304,8 @@ static int segname_to_idx(const char *s) {
     return -1;
 }
 
-/* Parse the flag string after ':' for a segment option.
- * Format: zero or more letter+hex pairs, e.g. "b0m20x80a0".
+/* Parse the flag string after the first ':' for a segment option.
+ * Format: colon-separated letter:hex pairs, e.g. "b55:m66:x44:a77".
  * Letters: b=begin, m=min, x=max, a=base (absolute).
  * Returns 0 on success, -1 on error. */
 static int parse_seg_flags(int idx, const char *flags) {
@@ -315,13 +315,15 @@ static int parse_seg_flags(int idx, const char *flags) {
     int vn;
     unsigned int v;
     while (*p) {
+        /* Each pair: <letter><hex>[:<letter><hex>...] */
         sw = (char)tolower((unsigned char)*p++);
         if (sw != 'a' && sw != 'b' && sw != 'm' && sw != 'x') {
             fprintf(stderr, "ERR: Unknown segment flag '%c'\n", (char)toupper((unsigned char)sw));
             return -1;
         }
+        /* Collect hex digits up to next ':' or end */
         vn = 0;
-        while (*p && hdigit((unsigned char)*p) >= 0 && vn < 6)
+        while (*p && *p != ':' && vn < 6)
             vbuf[vn++] = *p++;
         vbuf[vn] = 0;
         if (vn == 0) {
@@ -345,6 +347,8 @@ static int parse_seg_flags(int idx, const char *flags) {
             maxval[idx] = v;
             opt_max[idx] = 1;
         }
+        /* skip the ':' separator between pairs */
+        if (*p == ':') p++;
     }
     return 0;
 }
@@ -426,14 +430,14 @@ static int parse_args(int optc, char **opts) {
 
 static void usage(void) {
     fprintf(stderr,
-            "INF: h862cmd name[.h86] name.cmd [-code[:b<hex>][m<hex>][x<hex>][a<hex>]]\n"
+            "INF: h862cmd name[.h86] name.cmd [-code[:b<hex>[:m<hex>[:x<hex>[:a<hex>]]]]]\n"
             "              [-data:...] [-extra:...] [-stack:...]\n"
             "              [-x1:...] [-x2:...] [-x3:...] [-x4:...]\n"
             "              [-8080] [-nhead]\n"
             "     creates/replaces name.cmd from name.h86\n"
             "     if name.cmd is omitted, the output is the input basename with .cmd\n"
             "     options are case-insensitive\n"
-            "     segment flags (attached directly after ':')\n"
+            "     segment flags are colon-separated pairs after the first ':'\n"
             "       b<hex>  Intel HEX begin paragraph (default: 0 CODE, FFFFh DATA)\n"
             "       m<hex>  minimum paragraphs in the CMD descriptor\n"
             "       x<hex>  maximum paragraphs (0 = no constraint)\n"
@@ -443,7 +447,7 @@ static void usage(void) {
             "     -nzero    rejected (depends on pre-existing target RAM)\n"
             "     examples:\n"
             "       h862cmd prog\n"
-            "       h862cmd prog.h86 prog.cmd -code:b0m20 -data:b1000m10x80\n"
+            "       h862cmd prog.h86 prog.cmd -code:b0:m20 -data:b1000:m10:x80\n"
             "       h862cmd prog.h86 prog.cmd -8080 -code:m20\n");
 }
 

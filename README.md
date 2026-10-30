@@ -121,7 +121,7 @@ stdout is unused. On CP/M, the filesystem pads output to 128-byte records.
 ## h862cmd Usage
 
 ```
-h862cmd name[.h86] name.cmd [-code[:b<hex>][m<hex>][x<hex>][a<hex>]]
+h862cmd name[.h86] name.cmd [-code[:b<hex>[:m<hex>[:x<hex>[:a<hex>]]]]]
          [-data:...] [-extra:...] [-stack:...]
          [-x1:...] [-x2:...] [-x3:...] [-x4:...]
          [-8080] [-nhead]
@@ -144,7 +144,7 @@ h862cmd name[.h86] name.cmd [-code[:b<hex>][m<hex>][x<hex>][a<hex>]]
 | `-nzero` | Rejected: legacy option depends on pre-existing target RAM |
 
 Segment names: `code` `data` `extra` `stack` `x1` `x2` `x3` `x4` (case-insensitive).
-Flags are letter+hex pairs concatenated directly after `:`, e.g. `-code:b0m20` sets begin=`0`, min=`20h` paragraphs.
+Flags are colon-separated `letter:hex` pairs after the segment name, e.g. `-code:b0:m20` sets begin=`0`, min=`20h` paragraphs. Each flag letter and its hex value are unambiguous because the `:` separates them.
 
 | H86 record type | Handling |
 |---|---|
@@ -162,8 +162,9 @@ Examples:
 ```
 h862cmd prog
 h862cmd prog.h86 prog.cmd
-h862cmd prog.h86 prog.cmd -code:b0m20 -data:b1000m10x80
+h862cmd prog.h86 prog.cmd -code:b0:m20 -data:b1000:m10:x80
 h862cmd prog.h86 prog.cmd -8080 -code:m20
+h862cmd prog.h86 prog.cmd -code:b0:m20:x80:a5
 ```
 
 ## bin2asm Usage
