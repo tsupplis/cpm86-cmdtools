@@ -2,16 +2,19 @@
 
 ## Synopsis
 
-Simple tools collected to faciliate the cross development of executables running on CP/M-86
+Simple tools collected to facilitate the cross development of executables running on CP/M-86.
 
-- `cmdinfo` Details the structure of a .CMD file and can extract CODE, DATA and EXTRA segments
-- `cmdmod` Creates, modifies or deletes a segment (group) of a .CMD file in place
-- `bin2cmd` Converts a .COM/.BIN file (DOS .COM binary) to a .CMD
-- `h862bin` Converts Intel HEX / ASM-86 H86 to a flat binary image
-- `bin2asm` Converts binary bytes to NASM or MASM/ASM86 data declarations
-- `exe2cmd` Converts a .EXE file (DOS .EXE binary) to a .CMD (Small Model)
+| Tool | Description |
+|------|-------------|
+| `cmdinfo` | Details the structure of a .CMD file and can extract CODE, DATA and EXTRA segments |
+| `cmdmod`  | Creates, modifies or deletes a segment (group) of a .CMD file in place |
+| `bin2cmd` | Converts a .COM/.BIN file (DOS .COM binary) to a .CMD |
+| `h862bin` | Converts Intel HEX / ASM-86 H86 to a flat binary image |
+| `h862cmd` | Converts Intel HEX / ASM-86 H86 directly to a .CMD file |
+| `bin2asm` | Converts binary bytes to NASM or MASM/ASM86 data declarations |
+| `exe2cmd` | Converts a .EXE file (DOS .EXE binary) to a .CMD (Small Model) |
 
-bin2cmd and exe2cmd originate from John Elliot Code...
+`bin2cmd` and `exe2cmd` originate from John Elliott's code.
 
 ## cmdinfo Usage
 
@@ -92,6 +95,54 @@ flat-image converter, not a linker. Input is validated before output is written;
 a temporary `.$$$` file replaces the destination on success. Input and output
 must have different names. `INF:` progress and `ERR:` diagnostics go to stderr;
 stdout is unused. On CP/M, the filesystem pads output to 128-byte records.
+
+## h862cmd Usage
+
+```
+h862cmd name[.h86] name.cmd [-code[:b<hex>][m<hex>][x<hex>][a<hex>]]
+         [-data:...] [-extra:...] [-stack:...]
+         [-x1:...] [-x2:...] [-x3:...] [-x4:...]
+         [-8080] [-nhead]
+     - converts Intel HEX / ASM-86 H86 to a CP/M-86 .CMD file
+     - if name.cmd is omitted, the output is the input basename with .cmd
+     - options are case-insensitive
+```
+
+| Segment flag | Description | Default |
+|---|---|---|
+| `b<hex>` | Intel HEX begin paragraph (boundary between CODE and DATA for ordinary `00` records) | `0` for CODE, `FFFFh` for DATA |
+| `m<hex>` | Minimum paragraphs in the CMD descriptor | derived from the image size |
+| `x<hex>` | Maximum paragraphs in the CMD descriptor (`0` = no constraint) | `0` |
+| `a<hex>` | Absolute paragraph base (`0` = relocatable) | `0` (relocatable) |
+
+| Flag | Description |
+|---|---|
+| `-8080` | Treat all H86 segment records (types `81h`–`84h`) as CODE (8080 model) |
+| `-nhead` | Suppress the 128-byte CMD header (output is not a standard CMD) |
+| `-nzero` | Rejected: legacy option depends on pre-existing target RAM |
+
+Segment names: `code` `data` `extra` `stack` `x1` `x2` `x3` `x4` (case-insensitive).
+Flags are letter+hex pairs concatenated directly after `:`, e.g. `-code:b0m20` sets begin=`0`, min=`20h` paragraphs.
+
+| H86 record type | Handling |
+|---|---|
+| Intel HEX data (`00`) | Assigned to CODE or DATA based on the `b` begin-paragraph threshold |
+| ASM-86 CODE (`81h`) | Always assigned to the CODE group |
+| ASM-86 DATA/EXTRA/STACK (`82h`–`84h`) | Assigned to their respective groups (unless `-8080`) |
+| Start address (`03h`) | Skipped |
+| End of file (`01h`) | Stops processing |
+| Record types ≥ `85h` | Ignored (GENCMD compatibility) |
+
+Output is staged in a temporary `.$$$` file before replacing the destination. Input is validated before output is written.
+
+Examples:
+
+```
+h862cmd prog
+h862cmd prog.h86 prog.cmd
+h862cmd prog.h86 prog.cmd -code:b0m20 -data:b1000m10x80
+h862cmd prog.h86 prog.cmd -8080 -code:m20
+```
 
 ## bin2asm Usage
 
