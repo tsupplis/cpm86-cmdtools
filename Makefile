@@ -6,6 +6,7 @@ STRIP=strip
 LDFLAGS=
 BINEXT=
 EMU=emu2
+RM=rm -f
 
 # Runs a CMD with the emulator, checking the output of test.bin (skipped if absent)
 RUNHELLO=if command -v $(EMU) >/dev/null; then $(EMU) $(1) | grep -q 'Hello from assembler'; else echo "WRN: $(EMU) not found, run skipped"; fi

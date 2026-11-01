@@ -6,6 +6,7 @@ STRIP=aztec42_sqz
 LDFLAGS=-lc86
 LD=aztec42_link
 BINEXT=.cmd
+RM=rm -f
 
 TOOLS=h862bin$(BINEXT) h862cmd$(BINEXT) hex2bin$(BINEXT) cmdinfo$(BINEXT) cmdmod$(BINEXT) bin2cmd$(BINEXT)  exe2cmd$(BINEXT) bin2asm$(BINEXT)
 
