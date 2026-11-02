@@ -1,4 +1,5 @@
 rom
+samples/rom
 **/*.zip
 **/*.lock
 **/*.cin
