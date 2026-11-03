@@ -206,7 +206,7 @@ test-h862bin: h862bin
 	./h862bin h862bin-test/full.hex h862bin-test/full.bin
 	@test `wc -c < h862bin-test/full.bin` -eq 65536
 
-test: test-cmdinfo test-cmdmod test-bin2cmd test-h862bin test-bin2asm test-h862cmd
+test: test-cmdinfo test-cmdmod test-cmdmod-flags test-bin2cmd test-h862bin test-bin2asm test-h862cmd
 	@echo "PASS: all tests"
 
 .PHONY: all clean
@@ -221,3 +221,8 @@ test-h862cmd: h862cmd
 	cmp /tmp/h862cmd-test.cmd samplecmd.ref
 	$(RM) /tmp/h862cmd-test.cmd
 	@echo "PASS: h862cmd sample.h86 -8080 matches samplecmd.ref"
+
+# Raw, version-agnostic CMD header-bit edits, including opaque trailing records.
+.PHONY: test-cmdmod-flags
+test-cmdmod-flags: cmdmod
+	python3 tools/cmdmod_flags_test.py ./cmdmod

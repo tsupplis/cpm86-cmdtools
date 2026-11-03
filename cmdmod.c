@@ -21,7 +21,7 @@
  *      Offset  Size   Content
  *      ------  -----  -------
  *      0       128    CMD header: 8 group descriptors of 9 bytes (72 bytes),
- *                     then 56 bytes (RSX/fixup/flags) preserved untouched
+ *                     then 56 bytes (RSX/fixup/flags); group edits preserve them
  *      128     N      Group data, in descriptor order, each a multiple of 16
  *      end     Q      Padding to a 512-byte record boundary
  *
@@ -200,6 +200,8 @@ usage() {
     fprintf(stderr, "ERR: Invalid command line\n");
     fprintf(stderr, "INF: cmdmod [-s file.bin] [-t type] [-b basehex] [-n minhex] [-m maxhex] file.cmd index\n");
     fprintf(stderr, "     cmdmod -d file.cmd index\n");
+    fprintf(stderr, "     cmdmod -f bit=0|1 [-f bit=0|1 ...] file.cmd\n");
+    fprintf(stderr, "     -f           set/reset raw header flag bit 0-7; no group index or padding changes\n");
     fprintf(stderr, "     - modifies, creates (empty slot or new file) or deletes group <index> (0-7)\n");
     fprintf(stderr, "       of file.cmd in place; view the result with cmdinfo\n");
     fprintf(stderr, "     -s file.bin  replace the group content (padded to 16 bytes)\n");
@@ -214,6 +216,82 @@ usage() {
     fprintf(stderr, "     -d           delete the group, later groups move down one index\n");
     fprintf(stderr, "     a new group without -s has length 0 and needs -n (e.g. a stack group)\n");
     fprintf(stderr, "     a missing file.cmd is created and then index must be 0\n");
+}
+
+/* Header-only edit: copy the rest opaquely, including RSX/fixups and padding.
+ * Bit meanings are deliberately not interpreted. No group index is involved.
+ */
+#ifdef __STDC__
+int setflags(char *name, unsigned mask, unsigned value) {
+#else
+int setflags(name, mask, value) char *name; unsigned mask; unsigned value; {
+#endif
+    FILE *fin = NULL, *fout = NULL;
+    unsigned char header[HDR_SIZE];
+    static char temporary[300];
+    char *p, *dot;
+    unsigned count;
+    int pending = 0;
+    if (strlen(name) > 250) {
+        fprintf(stderr, "ERR: File name too long\n");
+        return 1;
+    }
+    fin = fopen(name, BINARY_READ);
+    if (!fin) {
+        fprintf(stderr, "ERR: Can't open '%s' (%d)\n", name, errno);
+        return 1;
+    }
+    if (fread(header, 1, HDR_SIZE, fin) != HDR_SIZE ||
+        header[0] < 1 || header[0] > 9) {
+        fprintf(stderr, "ERR: '%s' is not a complete CMD header\n", name);
+        goto flagfail;
+    }
+    header[127] = (unsigned char)((header[127] & ~mask) | (value & mask));
+    strcpy(temporary, name);
+    dot = NULL;
+    for (p = temporary; *p; p++) {
+        if (*p == '.') dot = p;
+        else if (*p == '/' || *p == '\\' || *p == ':') dot = NULL;
+    }
+    strcpy(dot ? dot : p, ".$$$");
+    if (strcmp(temporary, name) == 0) {
+        fprintf(stderr, "ERR: Can't derive a temporary name from '%s'\n", name);
+        goto flagfail;
+    }
+    fout = fopen(temporary, BINARY_WRITE);
+    if (!fout) {
+        fprintf(stderr, "ERR: Can't open output '%s' (%d)\n", temporary, errno);
+        goto flagfail;
+    }
+    pending = 1;
+    if (fwrite(header, 1, HDR_SIZE, fout) != HDR_SIZE) goto flagio;
+    while ((count = (unsigned)fread(iobuf, 1, RECORD, fin)) != 0) {
+        if ((unsigned)fwrite(iobuf, 1, count, fout) != count) goto flagio;
+    }
+    if (ferror(fin)) goto flagio;
+    if (fclose(fout)) {
+        fout = NULL;
+        goto flagio;
+    }
+    fout = NULL;
+    fclose(fin);
+    fin = NULL;
+#ifndef ATOMIC_RENAME
+    unlink(name);
+#endif
+    if (rename(temporary, name)) {
+        fprintf(stderr, "ERR: Can't replace '%s' (%d)\n", name, errno);
+        goto flagfail;
+    }
+    fprintf(stderr, "INF: FILE(%s) FLAGS(%02X)\n", name, (unsigned)header[127]);
+    return 0;
+flagio:
+    fprintf(stderr, "ERR: Can't copy '%s' (%d)\n", name, errno);
+flagfail:
+    if (fout) fclose(fout);
+    if (fin) fclose(fin);
+    if (pending) unlink(temporary);
+    return 1;
 }
 
 #ifdef __STDC__
@@ -232,6 +310,7 @@ int main_alt(argc, argv)
     long ooff[NGROUPS];
     int srck[NGROUPS];
     int del = 0, have_s = 0, have_t = 0, have_b = 0, have_n = 0, have_m = 0;
+    unsigned flagmask = 0, flagvalue = 0;
     int idx, i, newslot, used = 0;
     long v, t = 0, b = 0, n = 0, m = 0, srcsize = 0, off, total, len;
     long length, min, max;
@@ -253,6 +332,16 @@ int main_alt(argc, argv)
         if (argc < 3) { usage(); return 1; }
         if (strcmp(argv[1], "-s") == 0) {
             have_s = 1; srcname = argv[2];
+        } else if (strcmp(argv[1], "-f") == 0) {
+            unsigned bit;
+            if (strlen(argv[2]) != 3 || argv[2][0] < '0' || argv[2][0] > '7' ||
+                argv[2][1] != '=' || (argv[2][2] != '0' && argv[2][2] != '1')) {
+                fprintf(stderr, "ERR: -f expects bit=0 or bit=1, with bit 0-7\n");
+                return 1;
+            }
+            bit = 1U << (argv[2][0] - '0');
+            flagmask |= bit;
+            flagvalue = (flagvalue & ~bit) | (argv[2][2] == '1' ? bit : 0);
         } else if (strcmp(argv[1], "-t") == 0) {
             t = parsetype(argv[2]);
             if (t < 1) {
@@ -286,6 +375,14 @@ int main_alt(argc, argv)
             return 1;
         }
         argc -= 2; argv += 2;
+    }
+
+    if (flagmask) {
+        if (argc != 2 || del || have_s || have_t || have_b || have_n || have_m) {
+            fprintf(stderr, "ERR: -f is a header-only edit: file.cmd, no group index or group options\n");
+            return 1;
+        }
+        return setflags(argv[1], flagmask, flagvalue);
     }
 
     if (argc != 3 || argv[2][0] < '0' || argv[2][0] >= '0' + NGROUPS || argv[2][1]) {

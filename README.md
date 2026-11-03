@@ -7,7 +7,7 @@ Simple tools collected to facilitate the cross development of executables runnin
 | Tool | Description |
 |------|-------------|
 | `cmdinfo` | Details the structure of a .CMD file and can extract CODE, DATA and EXTRA segments |
-| `cmdmod`  | Creates, modifies or deletes a segment (group) of a .CMD file in place |
+| `cmdmod`  | Creates/modifies/deletes CMD groups or sets/resets raw header flag bits |
 | `bin2cmd` | Converts a flat binary image (DOS .COM binary) to a .CMD (8080 model) |
 | `h862bin` | Converts ASM-86 H86 to a flat binary image |
 | `hex2bin` | Converts old Intel HEX to a flat binary image |
@@ -73,6 +73,21 @@ cmdmod -d file.cmd index
 - Files with RSX or fixup records are refused, as is deleting the only group
 - Warns (`WRN:`) when the resulting file is 8080 model and has groups the loader ignores, see below
 - The file is rewritten through a temporary `.$$$` file, groups are padded to 16 bytes and the file to 512 bytes
+
+Header flags can be edited separately, without changing groups or padding:
+
+```
+cmdmod -f 1=1 file.cmd
+cmdmod -f 1=0 file.cmd
+cmdmod -f 0=1 -f 7=0 file.cmd
+```
+
+`-f bit=value` accepts bits 0–7 and values 0/1. Repeat it to edit several bits;
+the last assignment to a bit wins. CMDMOD assigns no operating-system meaning
+to the flags. This mode requires an existing CMD, takes no group index and
+cannot be mixed with group operations. Only header byte 7Fh changes; the rest
+of the file, including RSX/fixup records, is copied unchanged with no padding
+added. The existing temporary-file replacement procedure is retained.
 
 ## h862bin Usage
 
