@@ -20,6 +20,13 @@
 #endif
 #include <ctype.h>
 #include <stdio.h>
+#if defined(__GNUC__) || defined(__clang__)
+#define BINARY_READ "rb"
+#define BINARY_WRITE "wb"
+#else
+#define BINARY_READ "r"
+#define BINARY_WRITE "w"
+#endif
 #ifdef __STDC__
 #if defined(__APPLE__) || defined(__gnu_linux__) || defined(__GNUC__) || defined(__clang__)
 #include <unistd.h>
@@ -148,79 +155,85 @@ char *g_type[16] = {"NULL",      "CODE",        "DATA",      "EXTRA",
                     "UNUSED 12", "UNUSED 13",   "UNUSED 14", "ESCAPE CODE"};
 
 #ifdef __STDC__
-void dump(FILE *out, int index, char type, uint16_t base, uint16_t length,
+int dump(FILE *out, int index, char type, uint16_t base, long length,
           long offset, FILE *fin) {
 #else
-void dump(out, index, type, base, length, offset, fin) 
+int dump(out, index, type, base, length, offset, fin) 
           FILE *out; 
           int index; 
           char type; 
           uint16_t base; 
-          uint16_t length;
+          long length;
           long offset; 
           FILE *fin; {
 #endif
     char file_name[12 + 1];
     FILE *fout;
-    uint16_t left = length;
+    long left = length;
     char buffer[128];
 
     if(!fin) {
-        return;
+        return 0;
     }
     sprintf(file_name, "%c%d-%04x.bin", type, index, base);
-    fprintf(out, "INF: Output to %s (%u bytes)\n", file_name,length);
+    fprintf(out, "INF: Output to %s (%ld bytes)\n", file_name,length);
     unlink(file_name);
-    fout = fopen(file_name, "w");
+    fout = fopen(file_name, BINARY_WRITE);
     if (!fout) {
         fprintf(stderr, "ERR: Cannot write extract file (%s)\n", file_name);
-        fclose(fout);
-        unlink(file_name);
-        return;
+        return -1;
     }
     if (fseek(fin, offset, SEEK_SET)) {
-        fprintf(stderr, "ERR: Cannot seek to offset position (%d,%lu)\n", index,
+        fprintf(stderr, "ERR: Cannot seek to offset position (%d,%ld)\n", index,
                 offset);
         fclose(fout);
         unlink(file_name);
-        return;
+        return -1;
     }
     /*fprintf(stderr,"offset:%lu\n",offset);*/
     while (left > 0) {
         size_t mo;
-        size_t mi = fread(buffer, 1, 128>left?left:128, fin);
+        size_t mi = fread(buffer, 1, (size_t)(128>left?left:128), fin);
         /*fprintf(stderr,"left:%lu %lu mi:%lu\n",left,128>left?left:128, mi);*/
         if (mi == 0) {
             if (ferror(fin)) {
-                fprintf(stderr, "ERR: Cannot read input (%d,%lu)\n", index,
+                fprintf(stderr, "ERR: Cannot read input (%d,%ld)\n", index,
                         offset);
                 fclose(fout);
                 unlink(file_name);
-                return;
+                return -1;
             }
             if(left) {
-                fprintf(stderr, "WRN: Full length not available (%u missing)\n",left);
+                fprintf(stderr, "ERR: Full length not available (%ld missing)\n",left);
+                fclose(fout);
+                unlink(file_name);
+                return -1;
             }
             break;
         }
-        mo = fwrite(buffer, 1, mi>left?left:mi, fout);
+        mo = fwrite(buffer, 1, mi, fout);
         if (mo != mi) {
             fprintf(stderr, "ERR: Cannot write output fully to (%s)\n",
                     file_name);
             fclose(fout);
             unlink(file_name);
-            return;
+            return -1;
         }
         left -= mi;
     }
-    fclose(fout);
+    if (fclose(fout)) {
+        fprintf(stderr, "ERR: Cannot close extract file (%s)\n", file_name);
+        unlink(file_name);
+        return -1;
+    }
+    return 0;
 }
 
 #ifdef __STDC__
-void display_header(FILE *out, const char *name, int index, header_t *header,
+int display_header(FILE *out, const char *name, int index, header_t *header,
                     long *offset, FILE *fin) {
 #else
-display_header(out, name, index, header, offset, fin) 
+int display_header(out, name, index, header, offset, fin) 
         FILE *out; 
         char *name; 
         int index; 
@@ -229,14 +242,14 @@ display_header(out, name, index, header, offset, fin)
         FILE *fin; 
 {
 #endif
-    int type;
+    int type, result = 0;
     if (!header->form) {
-        return;
+        return 0;
     }
     type = header->form & 0xF;
     fprintf(out, "INF:     HDR(%d)",index);
     fprintf(out, " TYPE(%02d", header->form);
-    fprintf(out, ",%s)", g_type[header->form]);
+    fprintf(out, ",%s)", g_type[type]);
     if(header->base) {
     fprintf(out, " BASE(FIXED,%04xh)", header->base);
     } else {
@@ -249,11 +262,12 @@ display_header(out, name, index, header, offset, fin)
     fprintf(out, " LEN(%lu)", (unsigned long)header->length*16);
     fprintf(out, "\n");
     if (type == 1 || type == 2 || type == 3) {
-        dump(out, index, (char)tolower(g_type[type][0]),
-            header->base, header->length*16,
+        result = dump(out, index, (char)tolower(g_type[type][0]),
+            header->base, (long)header->length*16,
              *offset, fin);
     }
-    *offset += header->length*16;
+    *offset += (long)header->length*16;
+    return result;
 }
 
 /*
@@ -306,17 +320,17 @@ check_8080(out, block)
 }
 
 #ifdef __STDC__
-void display_header_block(FILE *out, const char *name, header_block_t *block,
+int display_header_block(FILE *out, const char *name, header_block_t *block,
                           FILE *fin) {
 #else
-display_header_block(out, name,  block, fin) 
+int display_header_block(out, name,  block, fin) 
         FILE *out; 
         char *name; 
         header_block_t *block;
         FILE *fin; 
 {
 #endif
-    int i;
+    int i, result = 0;
     long offset = 128;
 
     fprintf(out,"INF: FILE(%s)\n",name);
@@ -327,40 +341,33 @@ display_header_block(out, name,  block, fin)
     if(block->fixup_first_rec){
         fprintf(out, " FIXUP(%u)", block->fixup_first_rec);
     }
-    if(block->flags&0x08) {
+    if(block->flags&0x10) {
         fprintf(out, " FLAGS(RSX,");
     } else {
         fprintf(out, " FLAGS(CMD,");
     }
-    if(block->flags&0x10) {
+    if(block->flags&0x20) {
         fprintf(out, "P8087,");
     } else {
         fprintf(out, "N8087,");
     }
-    if(block->flags&0x20) {
+    if(block->flags&0x40) {
         fprintf(out, "F8087,");
     } else {
         fprintf(out, "N8087,");
     }
-    if(block->flags&0x40) {
+    if(block->flags&0x80) {
         fprintf(out, "FIXUP");
-        offset+=block->fixup_first_rec*4;
     } else {
         fprintf(out, "NFIXUP");
     }
     fprintf(out,")\n");
-    /* dump fixups if any */
-   if(block->flags&0x40) {
-        offset+=block->fixup_first_rec*4;
-    } 
-    /* dump rsx if any */
-    if(block->rsx_index_rec) {
-        offset+=block->rsx_index_rec*16;
-    }
     for (i = 0; i < 8; i++) {
-        display_header(out, name, i, block->header + i, &offset, fin);
+        if (display_header(out, name, i, block->header + i, &offset, fin))
+            result = -1;
     }
     check_8080(out, block);
+    return result;
 }
 
 #ifdef __STDC__
@@ -374,9 +381,10 @@ int display_file(out, name, extract)
 #endif
     FILE *f;
     size_t r;
+    int result;
     header_block_t block;
 
-    f = fopen((char *)name, "r");
+    f = fopen((char *)name, BINARY_READ);
     if (!f) {
         fprintf(stderr, "ERR: Cannot open file '%s'\n", name);
         return -1;
@@ -384,12 +392,17 @@ int display_file(out, name, extract)
     r = fread(&block, 1, sizeof(header_block_t), f);
     if (r != sizeof(header_block_t)) {
         fclose(f);
-        fprintf(stderr, "ERR: Cannot read header fully (%lu bytes)\n", r);
+        fprintf(stderr, "ERR: Cannot read header fully (%lu bytes)\n", (unsigned long)r);
         return -1;
     }
-    display_header_block(out, name, &block, extract ? f : 0);
+    if (block.header[0].form < 1 || block.header[0].form > 9) {
+        fprintf(stderr, "ERR: '%s' is not a CMD file\n", name);
+        fclose(f);
+        return -1;
+    }
+    result = display_header_block(out, name, &block, extract ? f : 0);
     fclose(f);
-    return 0;
+    return result;
 }
 
 #ifdef __STDC__
@@ -407,28 +420,37 @@ usage() {
 }
 
 #ifdef __STDC__
-int main(int argc, char **argv) {
+int main_alt(int argc, char **argv) {
 #else
-int main(argc, argv) 
+int main_alt(argc, argv) 
         int argc; 
         char **argv; 
 {
 #endif
-    int i;
+    int i, result = 0;
     if (argc < 2) {
         usage();
-        return -1;
+        return 1;
     }
     if (!strcmp("-e", argv[1]) || !strcmp("-E", argv[1])) {
-        if (argc < 2) {
+        if (argc != 3) {
             usage();
-            return -1;
+            return 1;
         }
-        display_file(stdout, argv[2], 1);
+        if (display_file(stdout, argv[2], 1)) result = 1;
     } else {
         for (i = 1; i < argc; i++) {
-            display_file(stdout, argv[i], 0);
+            if (display_file(stdout, argv[i], 0)) result = 1;
         }
     }
+    return result;
+}
+
+#ifdef __STDC__
+int main(int argc, char **argv) {
+#else
+int main(argc, argv) int argc; char **argv; {
+#endif
+    exit(main_alt(argc, argv));
     return 0;
 }

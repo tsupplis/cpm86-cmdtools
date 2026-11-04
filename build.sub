@@ -12,7 +12,12 @@ sqz exe2cmd.o
 ln -o exe2cmd.cmd exe2cmd.o p:m.lib p:c.lib
 cc -D__CPM86__ -ip: h862bin.c
 sqz h862bin.o
-ln -o h862bin.cmd h862bin.o p:m.lib p:c.lib
+cc -D__CPM86__ -ip: hexbin.c
+sqz hexbin.o
+ln -o h862bin.cmd h862bin.o hexbin.o p:m.lib p:c.lib
+cc -D__CPM86__ -ip: hex2bin.c
+sqz hex2bin.o
+ln -o hex2bin.cmd hex2bin.o hexbin.o p:m.lib p:c.lib
 cc -D__CPM86__ -ip: h862cmd.c
 sqz h862cmd.o
 ln -o h862cmd.cmd h862cmd.o p:m.lib p:c.lib

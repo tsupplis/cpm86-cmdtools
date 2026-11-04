@@ -75,6 +75,7 @@ long parsehex(s) char *s; {
         else if (*s >= 'a' && *s <= 'f') d = *s - 'a' + 10;
         else if (*s >= 'A' && *s <= 'F') d = *s - 'A' + 10;
         else return -1;
+        if (val > (0x7FFFFFFFL - d) / 16) return -1;
         val = val * 16 + d;
         s++;
     }
@@ -140,6 +141,10 @@ int main_alt(argc, argv)
 
     if (argc < 3) {
         usage();
+        return 1;
+    }
+    if (!strcmp(argv[1], argv[2])) {
+        fprintf(stderr, "ERR: Input and output must be different files\n");
         return 1;
     }
     /* Open the input file, and count its size by reading it: ftell at the

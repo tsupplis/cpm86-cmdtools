@@ -25,6 +25,13 @@
 
 #include <errno.h>
 #include <stdio.h>
+#if defined(__GNUC__) || defined(__clang__)
+#define BINARY_READ "rb"
+#define BINARY_WRITE "wb"
+#else
+#define BINARY_READ "r"
+#define BINARY_WRITE "w"
+#endif
 
 #define DS_LEN 0xF0 /* Length of data segment (paras) */
 
@@ -80,9 +87,9 @@ unsigned short maxparas;
 
 /* Copy bytes from one file to another. */
 #ifdef __STDC__
-void mvbytes(FILE *fpexe, FILE *fpcmd, long count)
+int mvbytes(FILE *fpexe, FILE *fpcmd, long count)
 #else
-mvbytes(fpexe, fpcmd, count) FILE *fpexe;
+int mvbytes(fpexe, fpcmd, count) FILE *fpexe;
 FILE *fpcmd;
 long count;
 #endif
@@ -93,12 +100,16 @@ long count;
         c = fgetc(fpexe);
         if (c == EOF) {
             fprintf(stderr,
-                    "WRN: Unexpected end of input; output will be truncated\n");
-            return;
+                    "ERR: Cannot read required input bytes\n");
+            return -1;
         }
-        fputc(c, fpcmd);
+        if (fputc(c, fpcmd) == EOF) {
+            fprintf(stderr, "ERR: Cannot write output (%d)\n", errno);
+            return -1;
+        }
         --count;
     }
+    return 0;
 }
 
 #ifdef __STDC__
@@ -115,6 +126,8 @@ char **argv;
     unsigned long exelen, dsbytes;
     long pos;
     int n;
+    unsigned long base;
+    char extra;
 
     if (argc < 3) {
         fprintf(stderr, "ERR: Invalid command line\n");
@@ -122,18 +135,18 @@ char **argv;
         return 1;
     }
     for (n = 3; n < argc; n++) {
-        if (!strncmp(argv[n], "base=", 5)) {
-            if (!sscanf(&argv[n][5], "%x", &gl_base)) {
-                fprintf(stderr, "ERRO: base= option incorrect.\n");
-                return 1;
-            }
+        if ((strncmp(argv[n], "base=", 5) && strncmp(argv[n], "BASE=", 5)) ||
+            sscanf(&argv[n][5], "%lx%c", &base, &extra) != 1 || base > 0xFFFFUL) {
+            fprintf(stderr, "ERR: Invalid base= option '%s'\n", argv[n]);
+            return 1;
         }
+        gl_base = (int)base;
     }
 
     /* Load EXE header, and extract the segment info. This code depends
      * on the word at CS:6 being the length of the code segment in
      * paragraphs. */
-    fpexe = fopen(argv[1], "rb");
+    fpexe = fopen(argv[1], BINARY_READ);
     if (!fpexe) {
         fprintf(stderr, "ERR: Can't open input '%s' (%d)\n", argv[1], errno);
         return 1;
@@ -166,6 +179,11 @@ char **argv;
     */
     /* This is CP/M-86, the DSEG is a fixed size */
     dsmin = dsmax = DS_LEN;
+    if (dseg > 0xFFFFU - DS_LEN) {
+        fprintf(stderr, "ERR: Data segment top exceeds FFFFh paragraphs\n");
+        fclose(fpexe);
+        return 1;
+    }
     dstop = dseg + DS_LEN;
     fprintf(stderr, "INF: EXE length     = %04lx\n", exelen);
     fprintf(stderr, "INF: EXE header len = %04x\n", peek(8));
@@ -191,9 +209,9 @@ char **argv;
     addgroup(1, dseg - cseg, 0, dseg - cseg, 0);
     addgroup(2, dstop - dseg, 0, dsmin, 0);
 
-    fpcmd = fopen(argv[2], "wb");
+    fpcmd = fopen(argv[2], BINARY_WRITE);
     if (fpcmd == NULL) {
-        fprintf(stderr, "ERR: Can't open output '%s' (%d)\n", argv[1], errno);
+        fprintf(stderr, "ERR: Can't open output '%s' (%d)\n", argv[2], errno);
         fclose(fpexe);
         return 2;
     }
@@ -206,33 +224,54 @@ char **argv;
         return 2;
     }
     /* Write the code segment. The first 8 bytes have been done. */
-    mvbytes(fpexe, fpcmd, 16L * (long)(dseg - cseg) - 8L);
+    if (mvbytes(fpexe, fpcmd, 16L * (long)(dseg - cseg) - 8L)) goto fail;
     /* Write the data segment. */
     dsbytes = 16L * (dstop - dseg);
-    mvbytes(fpexe, fpcmd, 40L);
+    if (mvbytes(fpexe, fpcmd, 40L)) goto fail;
     /* Apply fixups to offsets within the data segment */
     for (n = 0; n < 8; n++) {
         unsigned seg;
         if (n == 6) {
-            mvbytes(fpexe, fpcmd, 4L); /* Address of DOS module */
+            if (mvbytes(fpexe, fpcmd, 4L)) goto fail; /* Address of DOS module */
             continue;
         }
-        mvbytes(fpexe, fpcmd, 2L); /* Offset */
-        fread(exe_header, 1, 2, fpexe);
+        if (mvbytes(fpexe, fpcmd, 2L)) goto fail; /* Offset */
+        if (fread(exe_header, 1, 2, fpexe) != 2) {
+            fprintf(stderr, "ERR: Cannot read fixup word\n");
+            goto fail;
+        }
         seg = peek(0) + gl_base;
-        fputc(seg & 0xFF, fpcmd);
-        fputc(seg >> 8, fpcmd);
+        if (fputc(seg & 0xFF, fpcmd) == EOF ||
+            fputc((seg >> 8) & 0xFF, fpcmd) == EOF) {
+            fprintf(stderr, "ERR: Cannot write fixup word\n");
+            goto fail;
+        }
     }
-    mvbytes(fpexe, fpcmd, dsbytes - 72L);
+    if (mvbytes(fpexe, fpcmd, dsbytes - 72L)) goto fail;
     /* Pad the CMD file out to a whole number of records */
     pos = ftell(fpcmd);
+    if (pos < 0) {
+        fprintf(stderr, "ERR: Cannot get output position\n");
+        goto fail;
+    }
     while (pos & 0x7F) {
-        fputc(0, fpcmd);
+        if (fputc(0, fpcmd) == EOF) {
+            fprintf(stderr, "ERR: Cannot write output padding\n");
+            goto fail;
+        }
         ++pos;
     }
-    fclose(fpcmd);
+    if (fclose(fpcmd)) {
+        fprintf(stderr, "ERR: Cannot close output '%s' (%d)\n", argv[2], errno);
+        fclose(fpexe);
+        return 2;
+    }
     fclose(fpexe);
     return 0;
+fail:
+    fclose(fpcmd);
+    fclose(fpexe);
+    return 2;
 }
 
 #ifdef __STDC__

@@ -30,6 +30,8 @@ cmdinfo -e file.cmd
 ```
 
 For a file without a DATA group, `cmdinfo` prints `MODEL(8080)` and warns (`WRN:`) about what the loader would ignore, see the loader notes below.
+Malformed headers and extraction failures report `ERR:`; failed extractions
+are removed. Group extraction supports the full paragraph-length range.
 
 ## bin2cmd Usage
 
@@ -129,6 +131,8 @@ hex2bin file.hex file.bin
 | Bad checksum/length, unsupported record, overlap, hole, missing EOF | Rejected with `ERR:` and a nonzero exit status |
 
 Like `h862bin` but accepts only plain Intel HEX — no ASM-86 segment records (`81`–`84`).
+The two commands share their implementation in `hexbin.c`; their record and EOF
+rules remain distinct.
 Input is validated before output is written; a temporary `.$$$` file replaces the destination on success.
 Input and output must have different names. `INF:` progress and `ERR:` diagnostics go to stderr;
 stdout is unused. On CP/M, the filesystem pads output to 128-byte records.
@@ -247,7 +251,7 @@ exe2cmd file.exe file.cmd [base=hex]
 | Two groups only | Exactly one Code group (type 1) and one Data group (type 2) are emitted. No Stack, Extra or Aux groups are generated regardless of what the EXE image contains. |
 | Hard-coded `base=` default | The paragraph offset added to every intra-DS fixup defaults to `0x60`, which is the CP/M-86 BDOS load address. Passing a different `base=` value is necessary for any other target. |
 | Padded to 128-byte record boundary | The output `.CMD` is zero-padded to the next 128-byte boundary, not to a full 512-byte sector. |
-| No write-error reporting in `mvbytes` | Errors during the byte-copy phase are silently dropped (noted as `TODO` in the source). |
+| Checked copying | Missing input bytes, write failures and output-close failures report `ERR:` and return a nonzero status; a partial output may remain. |
 
 **Diagnostic output**
 
@@ -388,6 +392,13 @@ Native (build with `make`), each test works in its own directory (removed by `ma
 | `make test-h862bin` | `h862bin-test` | Intel/ASM-86 records, out-of-order data, 64K range, padding and validation failures |
 | `make test-bin2asm` | temporary directory | binary ranges, 64K input, labels, errors, stdin and NASM round trips |
 | `make test-bin2cmd` | `bin2cmd-test` | zero page, `-n`, `-m`, `test.bin` |
+| `make test-review` | temporary directory | reviewed defects: overflow, 64K extraction, flags/offsets, failure status and BDOS fixups |
+
+Run the same defect checks against Aztec binaries with
+`make -f Makefile.cpm86 test-review-emu2`, or
+`make -f Makefile.dos -f Makefile.emutest test-review-emu2`.
+These checks take no interactive input. CP/M failure cases check diagnostics
+because CP/M function 0 does not convey a DOS-style exit code to the emulator.
 
 - `test.bin` is a masm "hello" for CP/M-86. When `emu2` is available (`EMU=` to override) the converted files are run and their output is checked
 - H86 conversion under either emulator target: `make -f Makefile.cpm86 test-h862bin-emu2` or `make -f Makefile.dos test-h862bin-emu2`.

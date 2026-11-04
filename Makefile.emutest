@@ -58,3 +58,7 @@ test-h862bin-emu2: h862bin$(BINEXT)
 .PHONY: test-bin2asm-emu2
 test-bin2asm-emu2: bin2asm$(BINEXT)
 	python3 tools/b2atest.py --emu ./bin2asm$(BINEXT)
+
+.PHONY: test-review-emu2
+test-review-emu2: $(TOOLS)
+	python3 tools/review_test.py . --suffix=$(BINEXT)

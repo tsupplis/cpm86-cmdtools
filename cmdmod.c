@@ -594,6 +594,7 @@ int main_alt(argc, argv)
     if (fclose(fout)) {
         fout = NULL;
         fprintf(stderr, "ERR: Can't close output properly (%d)\n", errno);
+        unlink(tmpname);
         goto fail;
     }
     fout = NULL;

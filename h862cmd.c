@@ -642,7 +642,7 @@ static int derive_dst(const char *arg, char *dst, size_t dn) {
     return 0;
 }
 
-int main(int argc, char **argv) {
+static int run(int argc, char **argv) {
     /* opts[] holds only the option arguments; posv[] the positional filenames */
     char src[1024], dst[1024];
     static char *opts[64];
@@ -660,7 +660,11 @@ int main(int argc, char **argv) {
     /* Separate positional arguments (no leading '-') from options */
     for (i = 1; i < argc; i++) {
         if (argv[i][0] == '-') {
-            if (optc < 63) opts[optc++] = argv[i];
+            if (optc == 63) {
+                fprintf(stderr, "ERR: Too many options\n");
+                return 1;
+            }
+            opts[optc++] = argv[i];
         } else {
             if (posc < 2) posv[posc++] = argv[i];
             else {
@@ -732,8 +736,10 @@ int main(int argc, char **argv) {
             strcpy(src2, src);
             src2[slen-3] = 'H';
             f = fopen(src2, INMODE);
-            if (f)
-                infile = src2;
+            if (f) {
+                strcpy(src, src2);
+                infile = src;
+            }
         }
         if (!f) {
             fprintf(stderr, "ERR: Cannot open source '%s' (%d)\n", src, errno);
@@ -749,5 +755,10 @@ int main(int argc, char **argv) {
     }
     if (rc < 0)
         return 1;
+    return 0;
+}
+
+int main(int argc, char **argv) {
+    exit(run(argc, argv));
     return 0;
 }

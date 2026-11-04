@@ -13,18 +13,19 @@ TOOLS=h862bin$(BINEXT) h862cmd$(BINEXT) hex2bin$(BINEXT) cmdinfo$(BINEXT) cmdmod
 all: $(TOOLS)
 
 bin2asm.o b2aconf.o: b2aconf.h
+hex2bin.o h862bin.o hexbin.o: hexbin.h
 
 bin2asm$(BINEXT): bin2asm.o b2aconf.o b2aconf.h
 	$(LD) -o $@ bin2asm.o b2aconf.o $(LDFLAGS)
 
-hex2bin$(BINEXT): hex2bin.o
-	$(LD) -o $@ $< $(LDFLAGS)
+hex2bin$(BINEXT): hex2bin.o hexbin.o
+	$(LD) -o $@ hex2bin.o hexbin.o $(LDFLAGS)
 
 h862cmd$(BINEXT): h862cmd.o
 	$(LD) -o $@ $< $(LDFLAGS)
 
-h862bin$(BINEXT): h862bin.o
-	$(LD) -o $@ $< $(LDFLAGS)
+h862bin$(BINEXT): h862bin.o hexbin.o
+	$(LD) -o $@ h862bin.o hexbin.o $(LDFLAGS)
 
 bin2cmd$(BINEXT): bin2cmd.o
 	$(LD) -o $@ $< $(LDFLAGS)

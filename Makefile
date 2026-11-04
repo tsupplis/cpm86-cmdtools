@@ -21,16 +21,16 @@ bin2asm$(BINEXT): bin2asm.c b2aconf.c b2aconf.h
 	$(CC) $(CFLAGS) -o $@ bin2asm.c b2aconf.c $(LDFLAGS)
 	$(STRIP) $@
 
-hex2bin$(BINEXT): hex2bin.c
-	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
+hex2bin$(BINEXT): hex2bin.c hexbin.c hexbin.h
+	$(CC) $(CFLAGS) -o $@ hex2bin.c hexbin.c $(LDFLAGS)
 	$(STRIP) $@
 
 h862cmd$(BINEXT): h862cmd.c
 	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
 	$(STRIP) $@
 
-h862bin$(BINEXT): h862bin.c
-	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
+h862bin$(BINEXT): h862bin.c hexbin.c hexbin.h
+	$(CC) $(CFLAGS) -o $@ h862bin.c hexbin.c $(LDFLAGS)
 	$(STRIP) $@
 
 bin2cmd$(BINEXT): bin2cmd.c
@@ -206,7 +206,7 @@ test-h862bin: h862bin
 	./h862bin h862bin-test/full.hex h862bin-test/full.bin
 	@test `wc -c < h862bin-test/full.bin` -eq 65536
 
-test: test-cmdinfo test-cmdmod test-cmdmod-flags test-bin2cmd test-h862bin test-bin2asm test-h862cmd
+test: test-cmdinfo test-cmdmod test-cmdmod-flags test-bin2cmd test-h862bin test-bin2asm test-h862cmd test-review
 	@echo "PASS: all tests"
 
 .PHONY: all clean
@@ -226,3 +226,7 @@ test-h862cmd: h862cmd
 .PHONY: test-cmdmod-flags
 test-cmdmod-flags: cmdmod
 	python3 tools/cmdmod_flags_test.py ./cmdmod
+
+.PHONY: test-review
+test-review: cmdinfo cmdmod bin2cmd h862cmd exe2cmd h862bin hex2bin
+	python3 tools/review_test.py .
