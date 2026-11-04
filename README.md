@@ -47,6 +47,7 @@ bin2cmd [-n] [-m maxhex] file.bin file.cmd
 - By default the code group is preceded by a 256-byte zero page, so a program assembled with `org 100h` runs as 8080 model
 - The group min size is the code group length (including the zero page unless `-n`), and the file is padded to 512 bytes
 - To leave room after the image (for a stack, for example) use `-m`, or `cmdmod -n` on the result to raise the min size
+- Input and output must be different files; Unix checks also detect hard-link and symbolic-link aliases.
 
 ## cmdmod Usage
 
@@ -75,6 +76,7 @@ cmdmod -d file.cmd index
 - Files with RSX or fixup records are refused, as is deleting the only group
 - Warns (`WRN:`) when the resulting file is 8080 model and has groups the loader ignores, see below
 - The file is rewritten through a temporary `.$$$` file, groups are padded to 16 bytes and the file to 512 bytes
+- A temporary filename that aliases the CMD or the `-s` input is rejected before writing.
 
 Header flags can be edited separately, without changing groups or padding:
 
@@ -175,6 +177,8 @@ Flags are colon-separated `letter:hex` pairs after the segment name, e.g. `-code
 | Record types ≥ `85h` | Ignored (GENCMD compatibility) |
 
 Output is staged in a temporary `.$$$` file before replacing the destination. Input is validated before output is written.
+Output names that collide with the temporary file (including a `.$$$` extension)
+are rejected without changing the existing file.
 
 Examples:
 
@@ -221,6 +225,10 @@ bin2asm -m - < image.bin > image.inc
 ```
 
 ## exe2cmd Usage
+
+Input and output must be different files. `base=` accepts an unsigned hexadecimal
+value from `0` to `FFFF` (an optional `0x` prefix is accepted); overflow and signs
+are rejected before output is opened.
 
 ```
 exe2cmd file.exe file.cmd [base=hex]

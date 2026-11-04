@@ -67,6 +67,20 @@ with tempfile.TemporaryDirectory(prefix="cmdtools-review-") as temporary:
     (root / "full.bin").write_bytes(payload)
     run("bin2cmd", ["full.bin", "full.bin"], False)
     assert (root / "full.bin").read_bytes() == payload
+    aliases = ["FULL.BIN"] if args.suffix else ["./full.bin"]
+    if not cpm:
+        aliases.append("./full.bin")
+    if not args.suffix:
+        (root / "hard.bin").hardlink_to(root / "full.bin")
+        (root / "sym.bin").symlink_to("full.bin")
+        aliases += ["hard.bin", "sym.bin"]
+    for alias in aliases:
+        run("bin2cmd", ["full.bin", alias], False)
+        assert (root / "full.bin").read_bytes() == payload
+    (root / "group.$$$").write_bytes(payload)
+    run("cmdmod", ["-s", "group.$$$", "group.cmd", "0"], False)
+    assert (root / "group.$$$").read_bytes() == payload
+    assert not (root / "group.cmd").exists()
     run("bin2cmd", ["-m", "10000000000000001", "full.bin", "bad.cmd"], False)
     assert not (root / "bad.cmd").exists()
     run("bin2cmd", ["-n", "full.bin", "full.cmd"])
@@ -101,6 +115,10 @@ with tempfile.TemporaryDirectory(prefix="cmdtools-review-") as temporary:
     (root / "c0-0000.bin").rmdir()
     (root / "UPPER.H86").write_bytes(b":0100008190EE\r\n:00000001FF\r\n")
     run("h862cmd", ["UPPER", "upper.cmd"])
+    sentinel = bytes(128)
+    (root / "out.$$$").write_bytes(sentinel)
+    run("h862cmd", ["UPPER", "out.$$$"], False)
+    assert (root / "out.$$$").read_bytes() == sentinel
     if not args.suffix:
         run("h862cmd", ["UPPER", "many.cmd"] + ["-8080"] * 64, False)
     # Complete synthetic BDOS image; verify all seven segment-word fixups.
@@ -109,7 +127,11 @@ with tempfile.TemporaryDirectory(prefix="cmdtools-review-") as temporary:
     ds = bytearray((i * 37 + 11) & 255 for i in range(3840))
     mz = bytearray(512)
     struct.pack_into("<HHHHH", mz, 0, 0x5a4d, 0, 9, 1, 32)
-    (root / "bdos.exe").write_bytes(mz + code + ds)
+    executable = bytes(mz + code + ds)
+    (root / "bdos.exe").write_bytes(executable)
+    for alias in (["bdos.exe"] if cpm else ["bdos.exe", "./bdos.exe"]):
+        run("exe2cmd", ["bdos.exe", alias], False)
+        assert (root / "bdos.exe").read_bytes() == executable
     for base in (0x60, 0x1234):
         run("exe2cmd", ["bdos.exe", "bdos.cmd", f"base={base:x}"])
         expected = bytearray(ds)
@@ -121,7 +143,9 @@ with tempfile.TemporaryDirectory(prefix="cmdtools-review-") as temporary:
         actual = (root / "bdos.cmd").read_bytes()
         assert actual[128:384] == code
         assert actual[384:] == expected
-    for option in ("base=", "base=xyz", "base=10000", "base=60junk", "other=1"):
+    for option in ("base=", "base=xyz", "base=10000", "base=60junk", "other=1",
+                   "base=100000000", "base=100000001", "base=-FFFFFFFF",
+                   "base=-0", "base=0x", "base=FFFFFFFFFFFFFFFFFFFFFFFF"):
         run("exe2cmd", ["bdos.exe", "bad.cmd", option], False)
     code[6:8] = b"\xff\xff"
     (root / "wrap.exe").write_bytes(mz + code + ds)

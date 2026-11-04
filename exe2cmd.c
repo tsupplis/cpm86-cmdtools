@@ -25,6 +25,7 @@
 
 #include <errno.h>
 #include <stdio.h>
+#include "filecmp.h"
 #if defined(__GNUC__) || defined(__clang__)
 #define BINARY_READ "rb"
 #define BINARY_WRITE "wb"
@@ -127,7 +128,8 @@ char **argv;
     long pos;
     int n;
     unsigned long base;
-    char extra;
+    char *p;
+    int digit;
 
     if (argc < 3) {
         fprintf(stderr, "ERR: Invalid command line\n");
@@ -135,12 +137,33 @@ char **argv;
         return 1;
     }
     for (n = 3; n < argc; n++) {
-        if ((strncmp(argv[n], "base=", 5) && strncmp(argv[n], "BASE=", 5)) ||
-            sscanf(&argv[n][5], "%lx%c", &base, &extra) != 1 || base > 0xFFFFUL) {
+        if (strncmp(argv[n], "base=", 5) && strncmp(argv[n], "BASE=", 5)) {
             fprintf(stderr, "ERR: Invalid base= option '%s'\n", argv[n]);
             return 1;
         }
+        p = argv[n] + 5;
+        if (p[0] == '0' && (p[1] == 'x' || p[1] == 'X')) p += 2;
+        base = 0;
+        if (!*p) {
+            fprintf(stderr, "ERR: Invalid base= option '%s'\n", argv[n]);
+            return 1;
+        }
+        for (; *p; p++) {
+            if (*p >= '0' && *p <= '9') digit = *p - '0';
+            else if (*p >= 'a' && *p <= 'f') digit = *p - 'a' + 10;
+            else if (*p >= 'A' && *p <= 'F') digit = *p - 'A' + 10;
+            else digit = -1;
+            if (digit < 0 || base > (0xFFFFUL - digit) / 16) {
+                fprintf(stderr, "ERR: Invalid base= option '%s'\n", argv[n]);
+                return 1;
+            }
+            base = base * 16 + digit;
+        }
         gl_base = (int)base;
+    }
+    if (same_file(argv[1], argv[2])) {
+        fprintf(stderr, "ERR: Input and output must be different files\n");
+        return 1;
     }
 
     /* Load EXE header, and extract the segment info. This code depends

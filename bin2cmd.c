@@ -41,6 +41,7 @@
 #endif
 #include <stdio.h>
 #include <errno.h>
+#include "filecmp.h"
 
 #ifdef __STDC__
 #if defined(__APPLE__) || defined(__gnu_linux__) || defined(__GNUC__) || defined(__clang__)
@@ -143,7 +144,7 @@ int main_alt(argc, argv)
         usage();
         return 1;
     }
-    if (!strcmp(argv[1], argv[2])) {
+    if (same_file(argv[1], argv[2])) {
         fprintf(stderr, "ERR: Input and output must be different files\n");
         return 1;
     }

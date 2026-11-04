@@ -14,6 +14,7 @@ all: $(TOOLS)
 
 bin2asm.o b2aconf.o: b2aconf.h
 hex2bin.o h862bin.o hexbin.o: hexbin.h
+bin2cmd.o exe2cmd.o cmdmod.o h862cmd.o: filecmp.h
 
 bin2asm$(BINEXT): bin2asm.o b2aconf.o b2aconf.h
 	$(LD) -o $@ bin2asm.o b2aconf.o $(LDFLAGS)

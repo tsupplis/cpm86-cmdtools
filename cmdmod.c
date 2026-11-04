@@ -37,6 +37,7 @@
 #endif
 #include <stdio.h>
 #include <errno.h>
+#include "filecmp.h"
 
 #ifdef __STDC__
 #if defined(__APPLE__) || defined(__gnu_linux__) || defined(__GNUC__) || defined(__clang__)
@@ -254,7 +255,7 @@ int setflags(name, mask, value) char *name; unsigned mask; unsigned value; {
         else if (*p == '/' || *p == '\\' || *p == ':') dot = NULL;
     }
     strcpy(dot ? dot : p, ".$$$");
-    if (strcmp(temporary, name) == 0) {
+    if (same_file(temporary, name)) {
         fprintf(stderr, "ERR: Can't derive a temporary name from '%s'\n", name);
         goto flagfail;
     }
@@ -546,7 +547,7 @@ int main_alt(argc, argv)
         else if (*p == '/' || *p == '\\' || *p == ':') dot = NULL;
     }
     strcpy(dot ? dot : p, ".$$$");
-    if (strcmp(tmpname, name) == 0) {
+    if (same_file(tmpname, name) || (fsrc && same_file(tmpname, srcname))) {
         fprintf(stderr, "ERR: Can't derive a temporary name from '%s'\n", name);
         goto fail;
     }

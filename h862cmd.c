@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "filecmp.h"
 #if defined(__unix__) || defined(__APPLE__) || defined(__GNUC__)
 #include <unistd.h>
 #define INMODE "rb"
@@ -510,6 +511,10 @@ static int output_cmd(const char *outname, FILE *in) {
         return -1;
     }
     strcat(output_tmp, ".$$$");
+    if (same_file(output_tmp, infile) || same_file(output_tmp, outname)) {
+        fprintf(stderr, "ERR: Temporary file name collides with input or output\n");
+        return -1;
+    }
     f = fopen(output_tmp, OUTMODE);
     if (!f) {
         fprintf(stderr, "ERR: Cannot create '%s' (%d)\n", output_tmp, errno);

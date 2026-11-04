@@ -25,7 +25,7 @@ hex2bin$(BINEXT): hex2bin.c hexbin.c hexbin.h
 	$(CC) $(CFLAGS) -o $@ hex2bin.c hexbin.c $(LDFLAGS)
 	$(STRIP) $@
 
-h862cmd$(BINEXT): h862cmd.c
+h862cmd$(BINEXT): h862cmd.c filecmp.h
 	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
 	$(STRIP) $@
 
@@ -33,7 +33,7 @@ h862bin$(BINEXT): h862bin.c hexbin.c hexbin.h
 	$(CC) $(CFLAGS) -o $@ h862bin.c hexbin.c $(LDFLAGS)
 	$(STRIP) $@
 
-bin2cmd$(BINEXT): bin2cmd.c
+bin2cmd$(BINEXT): bin2cmd.c filecmp.h
 	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
 	$(STRIP) $@
 
@@ -41,11 +41,11 @@ cmdinfo$(BINEXT): cmdinfo.c
 	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
 	$(STRIP) $@
 
-cmdmod$(BINEXT): cmdmod.c
+cmdmod$(BINEXT): cmdmod.c filecmp.h
 	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
 	$(STRIP) $@
 
-exe2cmd$(BINEXT): exe2cmd.c
+exe2cmd$(BINEXT): exe2cmd.c filecmp.h
 	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
 	$(STRIP) $@
 
