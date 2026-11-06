@@ -1,9 +1,9 @@
 .PHONY: all clean dist
 
-CC=aztec42_acc
+CC=aztec43_acc
 CFLAGS=-target=dos1 -I. -squeeze -Wc,-L60
 LDFLAGS=-target=dos1
-LD=aztec42_acc
+LD=aztec43_acc
 BINEXT=.com
 RM=rm -f
 

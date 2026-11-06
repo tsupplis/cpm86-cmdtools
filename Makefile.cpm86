@@ -1,9 +1,9 @@
 .PHONY: all clean dist
 
-CC=aztec42_acc
+CC=aztec43_acc
 CFLAGS=-target=cpm86 -I. -squeeze -Wc,-L60
 LDFLAGS=-target=cpm86
-LD=aztec42_acc
+LD=aztec43_acc
 BINEXT=.cmd
 RM=rm -f
 
