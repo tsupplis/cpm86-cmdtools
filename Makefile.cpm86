@@ -1,10 +1,9 @@
 .PHONY: all clean dist
 
-CC=aztec42_cc
-CFLAGS=-L60 -D__CPM86__ 
-STRIP=aztec42_sqz
-LDFLAGS=-lc86
-LD=aztec42_link
+CC=aztec42_acc
+CFLAGS=-target=cpm86 -I. -squeeze -Wc,-L60
+LDFLAGS=-target=cpm86
+LD=aztec42_acc
 BINEXT=.cmd
 RM=rm -f
 
@@ -41,8 +40,7 @@ exe2cmd$(BINEXT): exe2cmd.o
 	$(LD) -o $@ $< $(LDFLAGS)
 
 .c.o:
-	$(CC) $(CFLAGS) $<
-	$(STRIP) $@
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
 	$(RM) *.cin *.o $(TOOLS) *.cmd *.com cpmtest.img cpm86-cmdtools.zip
