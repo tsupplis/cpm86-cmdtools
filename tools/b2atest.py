@@ -77,6 +77,16 @@ with tempfile.TemporaryDirectory(prefix='bin2asm-') as directory:
     before = (root / 'input.bin').read_bytes()
     run(['input.bin', 'input.bin'], ok=False)
     assert (root / 'input.bin').read_bytes() == before
+    aliases = ['INPUT.BIN'] if args.emu else ['./input.bin']
+    if not args.emu:
+        import os
+        os.link(root / 'input.bin', root / 'hard.bin')
+        (root / 'sym.bin').symlink_to('input.bin')
+        aliases += ['hard.bin', 'sym.bin']
+    for alias in aliases:
+        result = run(['input.bin', alias], ok=False)
+        assert b'ERR:' in result.stderr + result.stdout
+        assert (root / 'input.bin').read_bytes() == before
     result = run(['-H'])
     assert b'INF: bin2asm' in result.stderr + result.stdout
     if not args.emu:

@@ -91,7 +91,7 @@ the last assignment to a bit wins. CMDMOD assigns no operating-system meaning
 to the flags. This mode requires an existing CMD, takes no group index and
 cannot be mixed with group operations. Only header byte 7Fh changes; the rest
 of the file, including RSX/fixup records, is copied unchanged with no padding
-added. The existing temporary-file replacement procedure is retained.
+added. Flag and group edits share the output-replacement policy below.
 
 ## h862bin Usage
 
@@ -390,6 +390,19 @@ The loader never sets SS:SP from a STACK group: the group is allocated and its b
 - (`cmdmod` only) an 8080-model code group with no room beyond the image (min = length, no max): the stack must then be inside the image, or the min raised with `cmdmod -n`
 
 ## Tests
+
+
+### Output replacement safety
+
+`cmdmod` (flags and groups), `h862cmd`, `h862bin`, and `hex2bin` reserve their
+`.$$$` scratch file exclusively. An existing scratch/recovery file is never
+truncated or removed. On CP/M and DOS, an existing destination is preserved
+under a reserved `.BAK` name before installation; an existing backup blocks
+replacement. Failed installation restores the original name when possible.
+If restoration fails, both files remain and the diagnostic identifies the
+recovery files. Complete scratch files are retained on commit failure.
+Successful replacement removes the backup. Native Unix/macOS builds use
+atomic replacement by rename. This is not a power-loss durability guarantee.
 
 Native (build with `make`), each test works in its own directory (removed by `make clean`):
 

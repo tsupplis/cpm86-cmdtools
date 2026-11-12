@@ -32,16 +32,16 @@
  */
 
 #ifdef __STDC__
-#include <string.h>
 #include <stdlib.h>
 #endif
 #include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 #include <errno.h>
 #include "filecmp.h"
 
 #ifdef __STDC__
 #if defined(__APPLE__) || defined(__gnu_linux__) || defined(__GNUC__) || defined(__clang__)
-#include <unistd.h>
 #define BINARY_READ "rb"
 #define BINARY_WRITE "wb"
 #define ATOMIC_RENAME
@@ -54,6 +54,8 @@
 #define BINARY_READ "r"
 #define BINARY_WRITE "w"
 #endif
+
+#include "filerepl.h"
 
 #define HDR_SIZE 128
 #define DESC_SIZE 9
@@ -259,7 +261,7 @@ int setflags(name, mask, value) char *name; unsigned mask; unsigned value; {
         fprintf(stderr, "ERR: Can't derive a temporary name from '%s'\n", name);
         goto flagfail;
     }
-    fout = fopen(temporary, BINARY_WRITE);
+    fout = output_create(temporary, BINARY_WRITE);
     if (!fout) {
         fprintf(stderr, "ERR: Can't open output '%s' (%d)\n", temporary, errno);
         goto flagfail;
@@ -277,13 +279,8 @@ int setflags(name, mask, value) char *name; unsigned mask; unsigned value; {
     fout = NULL;
     fclose(fin);
     fin = NULL;
-#ifndef ATOMIC_RENAME
-    unlink(name);
-#endif
-    if (rename(temporary, name)) {
-        fprintf(stderr, "ERR: Can't replace '%s' (%d)\n", name, errno);
-        goto flagfail;
-    }
+    pending = 0; /* Complete scratch becomes recovery data at commit. */
+    if (output_install(temporary, name) < 0) return 1;
     fprintf(stderr, "INF: FILE(%s) FLAGS(%02X)\n", name, (unsigned)header[127]);
     return 0;
 flagio:
@@ -552,7 +549,7 @@ int main_alt(argc, argv)
         goto fail;
     }
 
-    fout = fopen(tmpname, BINARY_WRITE);
+    fout = output_create(tmpname, BINARY_WRITE);
     if (!fout) {
         fprintf(stderr, "ERR: Can't open output '%s' (%d)\n", tmpname, errno);
         goto fail;
@@ -603,13 +600,7 @@ int main_alt(argc, argv)
     fin = NULL;
     if (fsrc) fclose(fsrc);
     fsrc = NULL;
-#ifndef ATOMIC_RENAME
-    unlink(name);
-#endif
-    if (rename(tmpname, name)) {
-        fprintf(stderr, "ERR: Can't replace '%s' with '%s' (%d)\n", name, tmpname, errno);
-        goto fail;
-    }
+    if (output_install(tmpname, name) < 0) return 1;
     if (del) {
         fprintf(stderr, "INF: FILE(%s) HDR(%d) %s\n", name, idx, action);
     } else {

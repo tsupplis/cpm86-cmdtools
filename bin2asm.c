@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #endif
 #include "b2aconf.h"
+#include "filecmp.h"
 
 #ifdef __STDC__
 #if defined(__APPLE__) || defined(__GNUC__) || defined(__clang__)
@@ -76,7 +77,7 @@ static int run(argc, argv) int argc; char **argv; {
     if (config.in_file_name && !strcmp(config.in_file_name, "-")) config.in_file_name = NULL;
     if (config.out_file_name && !strcmp(config.out_file_name, "-")) config.out_file_name = NULL;
     if (config.in_file_name && config.out_file_name &&
-        !strcmp(config.in_file_name, config.out_file_name)) {
+        same_file(config.in_file_name, config.out_file_name)) {
         fprintf(stderr, "ERR: Input and output must have different names\n");
         return 1;
     }

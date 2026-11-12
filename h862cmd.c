@@ -24,17 +24,19 @@
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
 #include "filecmp.h"
 #if defined(__unix__) || defined(__APPLE__) || defined(__GNUC__)
-#include <unistd.h>
 #define INMODE "rb"
 #define OUTMODE "wb"
 #else
 #define INMODE "r"
 #define OUTMODE "w"
 #endif
+
+#include "filerepl.h"
 
 #define GRPS 8
 #define MAXADDR 65536L
@@ -515,7 +517,7 @@ static int output_cmd(const char *outname, FILE *in) {
         fprintf(stderr, "ERR: Temporary file name collides with input or output\n");
         return -1;
     }
-    f = fopen(output_tmp, OUTMODE);
+    f = output_create(output_tmp, OUTMODE);
     if (!f) {
         fprintf(stderr, "ERR: Cannot create '%s' (%d)\n", output_tmp, errno);
         return -1;
@@ -563,20 +565,7 @@ static int output_cmd(const char *outname, FILE *in) {
         return -1;
     }
     f = NULL;
-#if defined(__unix__) || defined(__APPLE__) || defined(__GNUC__)
-    if (rename(output_tmp, outname)) {
-        fprintf(stderr, "ERR: Cannot replace '%s' (%d)\n", outname, errno);
-        unlink(output_tmp);
-        return -1;
-    }
-#else
-    unlink(outname);
-    if (rename(output_tmp, outname)) {
-        fprintf(stderr, "ERR: Cannot replace '%s' (%d)\n", outname, errno);
-        unlink(output_tmp);
-        return -1;
-    }
-#endif
+    if (output_install(output_tmp, outname) < 0) return -1;
     fprintf(stderr, "INF: FILE(%s) BYTES(%lu) RECORDS(%ld)\n", infile,
             bytes_read, (total + (REC - total % REC) % REC) / REC);
     fprintf(stderr, "INF: OUTPUT(%s)\n", outname);

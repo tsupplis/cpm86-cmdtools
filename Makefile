@@ -16,21 +16,22 @@ TOOLS=h862bin$(BINEXT) h862cmd$(BINEXT) hex2bin$(BINEXT) cmdinfo$(BINEXT) cmdmod
 all: $(TOOLS)
 
 bin2asm.o b2aconf.o: b2aconf.h
+bin2asm.o: filecmp.h
 
-bin2asm$(BINEXT): bin2asm.c b2aconf.c b2aconf.h
+bin2asm$(BINEXT): bin2asm.c b2aconf.c b2aconf.h filecmp.h
 	$(CC) $(CFLAGS) -o $@ bin2asm.c b2aconf.c $(LDFLAGS)
 	$(STRIP) $@
 
-hex2bin$(BINEXT): hex2bin.c hexbin.c hexbin.h
-	$(CC) $(CFLAGS) -o $@ hex2bin.c hexbin.c $(LDFLAGS)
+hex2bin$(BINEXT): hex2bin.c hexbin.c hexbin.h filerepl.o
+	$(CC) $(CFLAGS) -o $@ hex2bin.c hexbin.c filerepl.o $(LDFLAGS)
 	$(STRIP) $@
 
-h862cmd$(BINEXT): h862cmd.c filecmp.h
-	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
+h862cmd$(BINEXT): h862cmd.c filecmp.h filerepl.o
+	$(CC) $(CFLAGS) -o $@ $< filerepl.o $(LDFLAGS)
 	$(STRIP) $@
 
-h862bin$(BINEXT): h862bin.c hexbin.c hexbin.h
-	$(CC) $(CFLAGS) -o $@ h862bin.c hexbin.c $(LDFLAGS)
+h862bin$(BINEXT): h862bin.c hexbin.c hexbin.h filerepl.o
+	$(CC) $(CFLAGS) -o $@ h862bin.c hexbin.c filerepl.o $(LDFLAGS)
 	$(STRIP) $@
 
 bin2cmd$(BINEXT): bin2cmd.c filecmp.h
@@ -41,8 +42,8 @@ cmdinfo$(BINEXT): cmdinfo.c
 	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
 	$(STRIP) $@
 
-cmdmod$(BINEXT): cmdmod.c filecmp.h
-	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
+cmdmod$(BINEXT): cmdmod.c filecmp.h filerepl.o
+	$(CC) $(CFLAGS) -o $@ $< filerepl.o $(LDFLAGS)
 	$(STRIP) $@
 
 exe2cmd$(BINEXT): exe2cmd.c filecmp.h
@@ -226,7 +227,12 @@ test-h862cmd: h862cmd
 .PHONY: test-cmdmod-flags
 test-cmdmod-flags: cmdmod
 	python3 tools/cmdmod_flags_test.py ./cmdmod
+	python3 tools/cmdmod_recovery_test.py
 
 .PHONY: test-review
 test-review: cmdinfo cmdmod bin2cmd h862cmd exe2cmd h862bin hex2bin
 	python3 tools/review_test.py .
+
+cmdmod.o h862cmd.o hexbin.o filerepl.o: filerepl.h
+filerepl.o: filecmp.h
+cmdmod$(BINEXT) h862cmd$(BINEXT) h862bin$(BINEXT) hex2bin$(BINEXT): filerepl.h filecmp.h

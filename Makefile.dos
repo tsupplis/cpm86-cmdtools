@@ -12,20 +12,21 @@ TOOLS=h862bin$(BINEXT) h862cmd$(BINEXT) hex2bin$(BINEXT) cmdinfo$(BINEXT) cmdmod
 all: $(TOOLS)
 
 bin2asm.o b2aconf.o: b2aconf.h
+bin2asm.o: filecmp.h
 hex2bin.o h862bin.o hexbin.o: hexbin.h
 bin2cmd.o exe2cmd.o cmdmod.o h862cmd.o: filecmp.h
 
 bin2asm$(BINEXT): bin2asm.o b2aconf.o b2aconf.h
 	$(LD) -o $@ bin2asm.o b2aconf.o $(LDFLAGS)
 
-hex2bin$(BINEXT): hex2bin.o hexbin.o
-	$(LD) -o $@ hex2bin.o hexbin.o $(LDFLAGS)
+hex2bin$(BINEXT): hex2bin.o hexbin.o filerepl.o
+	$(LD) -o $@ hex2bin.o hexbin.o filerepl.o $(LDFLAGS)
 
-h862cmd$(BINEXT): h862cmd.o
-	$(LD) -o $@ $< $(LDFLAGS)
+h862cmd$(BINEXT): h862cmd.o filerepl.o
+	$(LD) -o $@ h862cmd.o filerepl.o $(LDFLAGS)
 
-h862bin$(BINEXT): h862bin.o hexbin.o
-	$(LD) -o $@ h862bin.o hexbin.o $(LDFLAGS)
+h862bin$(BINEXT): h862bin.o hexbin.o filerepl.o
+	$(LD) -o $@ h862bin.o hexbin.o filerepl.o $(LDFLAGS)
 
 bin2cmd$(BINEXT): bin2cmd.o
 	$(LD) -o $@ $< $(LDFLAGS)
@@ -33,8 +34,8 @@ bin2cmd$(BINEXT): bin2cmd.o
 cmdinfo$(BINEXT): cmdinfo.o
 	$(LD) -o $@ $< -lm $(LDFLAGS)
 
-cmdmod$(BINEXT): cmdmod.o
-	$(LD) -o $@ $< $(LDFLAGS)
+cmdmod$(BINEXT): cmdmod.o filerepl.o
+	$(LD) -o $@ cmdmod.o filerepl.o $(LDFLAGS)
 
 exe2cmd$(BINEXT): exe2cmd.o
 	$(LD) -o $@ $< $(LDFLAGS)
@@ -59,3 +60,6 @@ dist: dos-cmdtools.zip
 dos-cmdtools.zip: $(TOOLS) Makefile.dos
 	$(RM) $@
 	zip -j $@ $(TOOLS)
+
+cmdmod.o h862cmd.o hexbin.o filerepl.o: filerepl.h
+filerepl.o: filecmp.h

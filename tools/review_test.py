@@ -28,8 +28,8 @@ with tempfile.TemporaryDirectory(prefix="cmdtools-review-") as temporary:
         r = subprocess.run(command + options, cwd=root, stdin=subprocess.DEVNULL,
                            capture_output=True, timeout=30)
         log = r.stdout + r.stderr
-        # CP/M function 0 cannot communicate a DOS-style status to emu2.
-        if not cpm or ok:
+        # CP/M and DOS 1 terminate without an exit status; check diagnostics.
+        if not args.suffix or ok:
             assert (r.returncode == 0) == ok, (tool, options, r)
         assert (b"ERR:" not in log) == ok, (tool, options, log)
         count += 1
@@ -153,4 +153,19 @@ with tempfile.TemporaryDirectory(prefix="cmdtools-review-") as temporary:
     code[6:8] = b"\x10\0"
     (root / "short.exe").write_bytes(mz + code)
     run("exe2cmd", ["short.exe", "bad.cmd"], False)
+    # Existing scratch/recovery data must never be reused or removed.
+    for tool, options in (
+        ("h862cmd", ["UPPER", "keep.cmd"]),
+        ("hex2bin", ["plain.hex", "keep.cmd"]),
+        ("h862bin", ["plain.hex", "keep.cmd"]),
+        ("cmdmod", ["-n", "400", "keep.cmd", "0"]),
+        ("cmdmod", ["-f", "1=1", "keep.cmd"]),
+    ):
+        before = bytes([1]) + bytes(127)
+        (root / "keep.cmd").write_bytes(before)
+        (root / "keep.$$$").write_bytes(b"RECOVERY")
+        run(tool, options, False)
+        assert (root / "keep.cmd").read_bytes() == before
+        assert (root / "keep.$$$").read_bytes() == b"RECOVERY"
+        (root / "keep.$$$").unlink()
 print(f"PASS: {count} review regression cases ({args.suffix or 'native'})")

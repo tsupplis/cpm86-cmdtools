@@ -10,16 +10,16 @@
 
 #ifdef __STDC__
 #include <stdlib.h>
-#include <string.h>
 #endif
 #include <errno.h>
 #include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 #include "hexbin.h"
 
 #ifdef __STDC__
 #if defined(__APPLE__) || defined(__gnu_linux__) || defined(__GNUC__) ||       \
     defined(__clang__)
-#include <unistd.h>
 #define BINARY_READ "rb"
 #define BINARY_WRITE "wb"
 #define ATOMIC_RENAME
@@ -32,6 +32,8 @@
 #define BINARY_READ "r"
 #define BINARY_WRITE "w"
 #endif
+
+#include "filerepl.h"
 
 static unsigned char seen[8192];
 static unsigned char record[260];
@@ -279,7 +281,7 @@ int h86;
     }
     fprintf(stderr, "INF: FILE(%s) ORIGIN(%04lx) SIZE(%ld)\n", argv[1], lowest,
             highest - lowest);
-    output = fopen(temporary, BINARY_WRITE);
+    output = output_create(temporary, BINARY_WRITE);
     if (!output) {
         fprintf(stderr, "ERR: Can't open output '%s' (%d)\n", temporary, errno);
         goto fail;
@@ -312,14 +314,7 @@ int h86;
     output = NULL;
     fclose(input);
     input = NULL;
-#ifndef ATOMIC_RENAME
-    unlink(argv[2]);
-#endif
-    if (rename(temporary, argv[2])) {
-        fprintf(stderr, "ERR: Can't replace output '%s' (%d); result in '%s'\n",
-                argv[2], errno, temporary);
-        return 1;
-    }
+    if (output_install(temporary, argv[2]) < 0) return 1;
     fprintf(stderr, "INF: OUTPUT(%s) SIZE(%ld)\n", argv[2], highest - lowest);
     return 0;
 fail:
